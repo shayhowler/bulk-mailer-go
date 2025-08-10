@@ -1,0 +1,75 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Bulk Mailer Go",
+  "outputfilename": "BulkMailerGo",
+  "productName": "Bulk Mailer Go",
+  "companyName": "Burak Aksoy",
+  "productVersion": "1.0.0",
+  "copyright": "© 2025 Burak Aksoy. All rights reserved.",
+  "comments": "Professional Email Marketing Application",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Burak Aksoy",
+    "email": "146424623+shayhowler@users.noreply.github.com"
+  },
+  "info": {
+    "companyName": "Burak Aksoy",
+    "productName": "Bulk Mailer Go",
+    "productVersion": "1.0.0",
+    "copyright": "© 2025 Burak Aksoy",
+    "comments": "Professional Email Marketing Application"
+  },
+  "build": {
+    "appId": "com.bulkmailer.app",
+    "productName": "Bulk Mailer Go",
+    "copyright": "© 2025 Burak Aksoy",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "bundleId": "com.bulkmailer.app",
+      "hardenedRuntime": true,
+      "entitlements": "build/darwin/entitlements.plist",
+      "entitlementsInherit": "build/darwin/entitlements.plist",
+      "extendInfo": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        },
+        "NSRequiresAquaSystemAppearance": false
+      },
+      "icon": "build/appicon.icns",
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "icon": "build/appicon.ico",
+      "fileVersion": "1.0.0",
+      "productVersion": "1.0.0"
+    },
+    "linux": {
+      "icon": "build/appicon.png",
+      "category": "Network;Email;",
+      "maintainer": "Burak Aksoy"
+    }
+  },
+  "nsis": {
+    "name": "Bulk Mailer Go",
+    "shortName": "BulkMailer",
+    "companyName": "Burak Aksoy",
+    "description": "Professional Email Marketing Application",
+    "version": "1.0.0",
+    "copyright": "© 2025 Burak Aksoy",
+    "license": "build/windows/LICENSE.txt",
+    "customInstallDir": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "allowToChangeInstallationDirectory": true,
+    "oneClick": false,
+    "perMachine": true,
+    "allowElevation": true,
+    "runAfterFinish": true
+  },
+  "gardenifi": {
+    "disableCache": true
+  }
+}

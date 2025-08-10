@@ -1,0 +1,235 @@
+/* ==== TABLES ==== */
+.table-container {
+    overflow-x: auto;
+    margin: 20px 0;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #34495e;
+    border-radius: 12px;
+    overflow: hidden;
+}
+th {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    color: white;
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+}
+td {
+    padding: 12px;
+    border-bottom: 1px solid #7f8c8d;
+    color: #ecf0f1;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+tr:hover {
+    background: rgba(52, 152, 219, 0.1);
+}
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* ==== CONTACT TABLE IMPROVEMENTS ==== */
+#valid-table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#valid-table tbody tr:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+#valid-table tbody tr:active {
+    background-color: rgba(52, 152, 219, 0.2);
+}
+
+#valid-table tbody tr td:first-child {
+    cursor: default;
+}
+
+#valid-table tbody tr td:first-child:hover {
+    background-color: transparent;
+}
+
+/* ==== ATTACHMENT / EK DOSYA ==== */
+.attachment-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: #2c3e50;
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid #34495e;
+    transition: all 0.3s ease;
+}
+.attachment-container.drag-over {
+    border-color: #3498db;
+    background: #34495e;
+    box-shadow: 0 0 20px rgba(52, 152, 219, 0.3);
+    transform: scale(1.02);
+}
+.attachment-list {
+    min-height: 80px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 2px dashed #7f8c8d;
+    border-radius: 12px;
+    background: #34495e;
+    padding: 15px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+.attachment-list:empty::before {
+    content: attr(data-placeholder-text);
+    display: block;
+    text-align: center;
+    color: #95a5a6;
+    font-style: italic;
+    padding: 20px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+}
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background: #2c3e50;
+    border-radius: 10px;
+    border: 1px solid #34495e;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+.attachment-item:last-child {
+    margin-bottom: 0;
+}
+.attachment-item:hover,
+.attachment-item.hover {
+    background: #34495e;
+    border-color: #3498db;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+    transform: translateY(-2px);
+}
+.attachment-name {
+    color: #ecf0f1;
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+    z-index: 1;
+    transition: color 0.3s ease;
+}
+.attachment-item:hover .attachment-name {
+    color: #3498db;
+}
+.attachment-size {
+    color: #95a5a6;
+    font-size: 12px;
+    font-weight: 400;
+    min-width: 60px;
+    text-align: right;
+    z-index: 1;
+    transition: color 0.3s ease;
+}
+.attachment-item:hover .attachment-size {
+    color: #bdc3c7;
+}
+.attachment-remove {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1;
+    transition: all 0.3s ease;
+    z-index: 2;
+    opacity: 0.8;
+}
+.attachment-remove:hover {
+    background: #c0392b;
+    transform: scale(1.1) rotate(90deg);
+    opacity: 1;
+    box-shadow: 0 3px 10px rgba(192, 57, 43, 0.4);
+}
+.attachment-remove:active {
+    transform: scale(0.95) rotate(90deg);
+}
+.attachment-item[data-file-type="pdf"]      { border-left: 4px solid #e74c3c; }
+.attachment-item[data-file-type="image"]    { border-left: 4px solid #9b59b6; }
+.attachment-item[data-file-type="document"] { border-left: 4px solid #3498db; }
+.attachment-item[data-file-type="archive"]  { border-left: 4px solid #f39c12; }
+.attachment-buttons, .attachment-container > div:last-child {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.attachment-container .btn-primary,
+.attachment-container .btn-danger {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.attachment-container .btn-primary {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+}
+.attachment-container .btn-primary:hover {
+    background: linear-gradient(135deg, #2980b9, #1f5f8b);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+}
+.attachment-container .btn-danger {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+}
+.attachment-container .btn-danger:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.3);
+}
+/* Attachment List Scrollbar */
+.attachment-list::-webkit-scrollbar {
+    width: 6px;
+}
+.attachment-list::-webkit-scrollbar-track {
+    background: #2c3e50;
+    border-radius: 3px;
+}
+.attachment-list::-webkit-scrollbar-thumb {
+    background: #3498db;
+    border-radius: 3px;
+    transition: background 0.3s ease;
+}
+.attachment-list::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
+}

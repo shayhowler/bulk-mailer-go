@@ -1,0 +1,61 @@
+/* ==== BUTTONS, FORM ACTIONS, LOADING ==== */
+button {
+    padding: 12px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #7f8c8d !important;
+}
+
+/* Buton Renkleri */
+.btn-primary    { background: linear-gradient(45deg, #3498db, #2980b9); color: white; }
+.btn-success    { background: linear-gradient(45deg, #27ae60, #229954); color: white; }
+.btn-danger     { background: linear-gradient(45deg, #e74c3c, #c0392b); color: white; }
+.btn-secondary  { background: linear-gradient(45deg, #95a5a6, #7f8c8d); color: white; }
+.btn-info       { background: linear-gradient(45deg, #17a2b8, #138496); color: white; }
+.btn-next       { background: linear-gradient(45deg, #f39c12, #e67e22); color: white; font-size: 16px; padding: 15px 30px; margin-top: 20px; }
+.btn-small      { padding: 6px 12px; font-size: 12px; margin: 2px; }
+.btn-control    { padding: 4px 8px; font-size: 11px; margin: 1px; min-width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+.btn-close {
+    background: transparent;
+    border: none;
+    color: #ecf0f1;
+    font-size: 24px;
+    padding: 5px;
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Loading animasyonu */
+button.loading::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: loading 2s infinite;
+}
+@keyframes loading {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}

@@ -1,0 +1,134 @@
+/* ==== FORMS, GRID, INPUTS ==== */
+.form-container {
+    background: #34495e;
+    padding: 25px;
+    border-radius: 12px;
+    margin: 20px 0;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    border: 1px solid #7f8c8d;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #bdc3c7;
+    font-weight: 500;
+    font-size: 14px;
+}
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    background: #2c3e50;
+    color: #ecf0f1;
+    border: 2px solid #7f8c8d;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+}
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+}
+
+.file-input {
+    display: flex;
+    gap: 10px;
+}
+.file-input input {
+    flex: 1;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #7f8c8d;
+}
+
+/* Send Controls */
+.format-controls,
+.theme-controls {
+    display: flex;
+    gap: 15px;
+    margin-top: 5px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border: 2px solid #7f8c8d;
+    border-radius: 6px;
+    background: #2c3e50;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ecf0f1;
+}
+
+.radio-label:hover {
+    border-color: #3498db;
+    background: #34495e;
+}
+
+.radio-label input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.radio-label input[type="radio"]:checked + span {
+    color: #3498db;
+}
+
+/* Utility margins */
+.mt-10 { margin-top: 10px; }
+
+/* Inline fields row for side-by-side selects */
+.inline-fields {
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.inline-fields .form-group {
+    flex: 1 1 300px;
+    margin-bottom: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .format-controls,
+    .theme-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .radio-label {
+        justify-content: center;
+    }
+    
+    .inline-fields {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

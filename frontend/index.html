@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Mailer Go</title>
+    <link rel="stylesheet" href="/src/styles/styles.css">
+</head>
+<body>
+    <div id="app">
+        <div class="header-controls">
+            <button id="hamburger">☰</button>
+        </div>
+        <select id="language-select" onchange="changeLanguage()">
+            <option value="tr" id="tr-option"></option>
+            <option value="en" id="en-option"></option>
+        </select>
+        <div id="log-sidebar" class="hidden">
+            <h3 id="logs-title"></h3>
+            <div class="log-controls">
+                <button onclick="clearLogs()" id="clear-logs-btn"></button>
+                <button onclick="scrollToBottom()" id="scroll-bottom-btn"></button>
+            </div>
+            <pre id="system-log-console"></pre>
+        </div>
+        <div id="content">
+            <div id="tabs">
+                <button class="tab active" data-tab="settings" onclick="switchTab('settings')" id="settings-tab"></button>
+                <button class="tab" data-tab="accounts" onclick="switchTab('accounts')" id="accounts-tab"></button>
+                <button class="tab" data-tab="contacts" onclick="switchTab('contacts')" disabled id="contacts-tab"></button>
+                <button class="tab" data-tab="templates" onclick="switchTab('templates')" id="templates-tab"></button>
+                <button class="tab" data-tab="send" onclick="switchTab('send')" id="send-tab"></button>
+                <button class="tab" data-tab="logs" onclick="switchTab('logs')" id="logs-tab"></button>
+            </div>
+            
+            <div id="settings" class="tab-content">
+                <h2 id="settings-title"></h2>
+                <div class="form-container">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label id="country-label"></label>
+                            <select id="settings-country"></select>
+                        </div>
+                        <div class="form-group">
+                            <label id="timezone-label"></label>
+                            <select id="settings-timezone"></select>
+                        </div>
+                        <div class="form-group">
+                            <label id="dateformat-label"></label>
+                            <select id="settings-dateformat">
+                                <option value="24h">24-hour (HH:mm:ss)</option>
+                                <option value="12h">12-hour (hh:mm:ss a)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label id="default-language-label"></label>
+                            <select id="settings-default-language">
+                                <option value="tr">🇹🇷 Türkçe</option>
+                                <option value="en">🇺🇸 English</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label id="logs-language-label"></label>
+                            <input type="text" id="logs-language-fixed" value="English (fixed)" disabled />
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-success" onclick="saveSettings()" id="save-settings-btn"></button>
+                        <button class="btn-secondary" onclick="reloadSettings()" id="reload-settings-btn"></button>
+                    </div>
+                </div>
+                
+                <!-- Data Management Section -->
+                <div class="form-container" style="margin-top: 20px;">
+                    <h3 id="data-management-title"></h3>
+                    <div class="data-info">
+                        <div class="form-group">
+                            <label id="data-location-label"></label>
+                            <input type="text" id="data-location" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label id="data-size-label"></label>
+                            <input type="text" id="data-size" readonly>
+                        </div>
+                    </div>
+                    <div class="data-actions">
+                        <button class="btn-info" onclick="refreshDataInfo()" id="refresh-data-btn"></button>
+                        <button class="btn-warning" onclick="exportData()" id="export-data-btn"></button>
+                        <button class="btn-secondary" onclick="importData()" id="import-data-btn"></button>
+                        <button class="btn-primary" onclick="importTemplates()" id="import-templates-btn" style="background: #667eea;"></button>
+                        <button class="btn-success" onclick="importAccounts()" id="import-accounts-btn" style="background: #48bb78;"></button>
+                        <button class="btn-danger" onclick="showUninstallDialog()" id="uninstall-app-btn"></button>
+                    </div>
+                </div>
+                
+                <button id="continue-settings-btn" class="btn-next" onclick="enableTab('accounts')"></button>
+            </div>
+            
+            <div id="accounts" class="tab-content hidden">
+                <h2 id="accounts-title"></h2>
+                <div class="table-container">
+                    <table id="accounts-table">
+                        <thead>
+                            <tr>
+                                <th id="accounts-name-header"></th>
+                                <th id="accounts-email-header"></th>
+                                <th id="accounts-smtp-header"></th>
+                                <th id="accounts-port-header"></th>
+                                <th id="accounts-actions-header"></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <button class="btn-primary" onclick="showAccountForm()" id="add-account-btn"></button>
+                
+                <div id="account-form" class="form-container hidden">
+                    <h3 id="account-edit-title"></h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label id="provider-label"></label>
+                            <select id="provider" onchange="updateProvider()">
+                                <option value="" id="select-provider-option"></option>
+                                <option value="Gmail" id="gmail-option"></option>
+                                <option value="Yandex" id="yandex-option"></option>
+                                <option value="Yahoo" id="yahoo-option"></option>
+                                <option value="Outlook" id="outlook-option"></option>
+                                <option value="Özel" id="custom-option"></option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label id="account-name-label"></label>
+                            <input id="account-name" placeholder="" required>
+                        </div>
+                        <div class="form-group">
+                            <label id="account-email-label"></label>
+                            <input id="account-email" type="email" placeholder="" required>
+                        </div>
+                        <div class="form-group">
+                            <label id="account-password-label"></label>
+                            <input id="account-password" type="password" placeholder="" required>
+                        </div>
+                        <div class="form-group">
+                            <label id="account-smtp-label"></label>
+                            <input id="account-smtp-server" placeholder="" required>
+                        </div>
+                        <div class="form-group">
+                            <label id="account-port-label"></label>
+                            <input id="account-smtp-port" type="number" placeholder="" required>
+                        </div>
+                        <div class="form-group">
+                            <label><input id="account-tls" type="checkbox" checked> <span id="tls-label"></span></label>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-success" onclick="saveAccount()" id="save-account-btn"></button>
+                        <button class="btn-danger" onclick="deleteAccount()" id="delete-account-btn" style="display: none;"></button>
+                        <button class="btn-secondary" onclick="hideAccountForm()" id="cancel-account-btn"></button>
+                    </div>
+                </div>
+                <button id="continue-accounts-btn" class="btn-next" onclick="enableTab('contacts')" disabled></button>
+            </div>
+            
+            <div id="contacts" class="tab-content hidden">
+                <h2 id="contacts-title"></h2>
+                <div id="source-selection" class="source-panel">
+                    <div class="form-group">
+                        <label id="data-source-label"></label>
+                        <select id="source-type" onchange="onSourceTypeChange()">
+                            <option value="" id="select-source-option"></option>
+                            <option value="SQLite" id="sqlite-option"></option>
+                            <option value="CSV" id="csv-option"></option>
+                            <option value="Excel" id="excel-option"></option>
+                        </select>
+                    </div>
+                    
+                    <div id="source-file" class="form-group hidden">
+                        <label id="file-label"></label>
+                        <div class="file-input">
+                            <input id="source-input" readonly placeholder="">
+                            <button onclick="selectSourceFile()" id="select-file-btn"></button>
+                        </div>
+                    </div>
+                    
+                    <div id="table-selection" class="form-group hidden">
+                        <label id="table-sheet-label"></label>
+                        <select id="table-combo" onchange="onTableChange()">
+                            <option value="" id="select-table-option"></option>
+                        </select>
+                    </div>
+                    
+                    <div id="email-column-selection" class="form-group hidden">
+                        <label id="email-column-label"></label>
+                        <select id="email-col-combo" onchange="onEmailColChange()" disabled>
+                            <option value="" id="select-email-column-option"></option>
+                        </select>
+                    </div>
+                    
+                    <button id="back-contacts-btn" class="btn-secondary hidden" onclick="resetSource()"></button>
+                </div>
+                
+                <div id="contacts-tabs" class="hidden">
+                    <div id="contacts-subtabs">
+                        <button class="subtab active" data-subtab="valid" onclick="switchSubTab('valid')" id="valid-emails-btn"></button>
+                        <button class="subtab" data-subtab="invalid" onclick="switchSubTab('invalid')" id="invalid-records-btn"></button>
+                    </div>
+                    <div class="search-container">
+                        <input id="search" placeholder="" oninput="filterContacts()">
+                        <span id="contact-count"></span>
+                    </div>
+                    <div class="table-container">
+                        <table id="valid-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="select-all" onclick="selectAll()"></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <table id="invalid-table" class="hidden">
+                            <thead><tr></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <button id="continue-contacts-btn" class="btn-next" onclick="enableTab('templates')" disabled></button>
+            </div>
+            
+            <div id="templates" class="tab-content hidden">
+                <h2 id="templates-title"></h2>
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label id="template-filter-label"></label>
+                    <select id="templates-filter" onchange="filterTemplatesUI()">
+                        <option value="all">🌍 Tüm Şablonlar / All Templates</option>
+                        <option value="tr">🇹🇷 Türkçe Şablonlar</option>
+                        <option value="en">🇺🇸 English Templates</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table id="templates-table">
+                        <thead>
+                            <tr>
+                                <th id="template-name-header"></th>
+                                <th id="template-subject-header"></th>
+                                <th id="template-content-header"></th>
+                                <th id="template-language-header"></th>
+                                <th id="template-actions-header"></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <button class="btn-primary" onclick="showTemplateForm()" id="add-template-btn"></button>
+                
+                <div id="template-form" class="form-container hidden">
+                    <h3 id="template-edit-title"></h3>
+                    <input type="hidden" id="template-id">
+                    <div class="form-group">
+                        <label id="template-name-label"></label>
+                        <input id="template-name" placeholder="" required>
+                    </div>
+                    <div class="form-group">
+                        <label id="template-subject-label"></label>
+                        <input id="template-subject" placeholder="" required>
+                    </div>
+                    <div class="form-group">
+                        <label id="template-language-label"></label>
+                        <select id="template-language">
+                            <option value="tr">🇹🇷 Türkçe</option>
+                            <option value="en">🇺🇸 English</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="template-content-label"></label>
+                        <div class="placeholder-info" style="margin-bottom: 10px; color: #666; font-size: 0.9em; font-style: italic;">
+                            <span id="template-placeholder-info">Use {placeholder_name} format for placeholders</span>
+                            <span style="margin-left: 15px;">•</span>
+                            <span id="template-theme-info" style="margin-left: 10px;">Theme applied when sending</span>
+                        </div>
+<div class="editor-wrapper" id="template-editor-wrapper" style="position:relative;">
+                          <div class="editor-controls" style="position:absolute;top:-35px;right:0px;z-index:1100;display:flex;gap:3px;">
+                            <button class="theme-toggle" id="change-theme-template-btn">
+                            </button>
+                          </div>
+                          <div id="template-editor"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="preview-label"></label>
+                        <div id="template-preview" class="preview-container fullscreen-preview"></div>
+                        <button class="btn-small" onclick="toggleFullscreenPreview('template-preview')" id="fullscreen-template-btn"></button>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-success" onclick="saveTemplate()" id="save-template-btn"></button>
+                        <button class="btn-danger" onclick="deleteTemplate()" id="delete-template-btn" style="display: none;"></button>
+                        <button class="btn-secondary" onclick="hideTemplateForm()" id="cancel-template-btn"></button>
+                    </div>
+                </div>
+                <button id="continue-templates-btn" class="btn-next" onclick="enableTab('send')"></button>
+            </div>
+            
+            <div id="send" class="tab-content hidden">
+                <h2 id="send-title"></h2>
+                <div class="send-panel">
+                    <div class="form-grid">
+                        <div class="inline-fields">
+                            <div class="form-group">
+                                <label id="email-account-label"></label>
+                                <select id="send-account" required>
+                                    <option value=""></option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label id="template-select-label"></label>
+                                <select id="template-select" onchange="loadTemplate()">
+                                    <option value=""></option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label id="template-filter-label"></label>
+                                <select id="template-filter" onchange="filterTemplates()">
+                                    <option value="all">🌍 Tüm Şablonlar / All Templates</option>
+                                    <option value="tr">🇹🇷 Türkçe Şablonlar</option>
+                                    <option value="en">🇺🇸 English Templates</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    	<div class="form-group mt-10">
+                        <label id="subject-label"></label>
+                        <input id="send-subject" type="text" required>
+                    </div>
+                    <div class="form-group">
+                        <label id="content-label"></label>
+                        <div class="placeholder-info" style="margin-bottom: 10px; color: #666; font-size: 0.9em; font-style: italic;">
+                            <span id="placeholder-info"></span>
+                            <span style="margin-left: 15px;">•</span>
+                            <span id="theme-email-info" style="margin-left: 10px;"></span>
+                        </div>
+<div class="editor-wrapper" id="send-editor-wrapper" style="position:relative;">
+                          <div class="editor-controls" style="position:absolute;top:-35px;right:0px;z-index:1100;display:flex;gap:3px;">
+                            <button class="theme-toggle" id="change-theme-send-btn">
+                            </button>
+                          </div>
+                          <div id="send-editor"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="cc-label"></label>
+                        <input id="cc-input" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label id="attachments-label"></label>
+                        <div class="attachment-container">
+                            <input type="file" id="file-input" multiple style="display: none;" onchange="handleFileSelect(event)">
+                            <div id="attachment-list" class="attachment-list"></div>
+                            <button type="button" onclick="triggerFileDialog()" class="btn-primary" id="select-file-send-btn"></button>
+                            <button type="button" onclick="clearAllAttachments()" class="btn-danger" id="clear-all-btn"></button>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-info" onclick="mapPlaceholders()" id="map-placeholders-btn"></button>
+                        <button class="btn-success" onclick="sendEmails()" id="send-btn"></button>
+                    </div>
+                    <div class="form-group">
+                        <label id="send-preview-label"></label>
+                        <div id="send-preview" class="preview-container fullscreen-preview"></div>
+                        <div class="preview-controls">
+                            <button class="btn-small" onclick="toggleFullscreenPreview('send-preview')" id="fullscreen-send-btn"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="logs" class="tab-content hidden">
+                <div class="logs-header">
+                    <h2 id="logs-main-title"></h2>
+                    <div class="log-bulk-controls">
+                        <button class="btn-info" onclick="toggleSelectionMode()" id="toggle-selection-mode"></button>
+                        <button class="btn-danger" onclick="deleteSelectedLogs()" disabled style="display: none;" id="delete-selected-logs"></button>
+                        <button class="btn-danger" onclick="clearAllLogs()" id="delete-all-logs-btn"></button>
+                        <button class="btn-info" onclick="refreshLogFiles()" id="refresh-logs-btn"></button>
+                    </div>
+                </div>
+                
+                <div id="log-files-container" class="logs-container">
+                    <div class="log-files-grid" id="log-files-grid">
+                    </div>
+                </div>
+                
+                <div id="log-viewer" class="log-viewer hidden">
+                    <div class="log-viewer-header">
+                        <h3 id="current-log-title" id="log-file-title"></h3>
+                        <div class="log-controls">
+                            <button onclick="goBackToLogsList()" id="back-logs-btn"></button>
+                            <button onclick="scrollLogToBottom()" id="scroll-log-bottom-btn"></button>
+                            <button onclick="searchInLogs()" id="search-logs-btn"></button>
+                        </div>
+                    </div>
+                    <input id="log-search" placeholder="" oninput="filterLogContent()" style="margin-bottom: 10px; display: none;">
+                    <div class="log-content-wrapper">
+                        <pre id="log-content" class="log-content" id="loading-text"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="mapping-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="mapping-title"></h3>
+                <button onclick="closeMappingModal()" class="btn-close">×</button>
+            </div>
+            <div id="mapping-fields" class="modal-body"></div>
+            <div class="modal-footer">
+                <button class="btn-success" onclick="saveMapping()" id="save-mapping-btn"></button>
+                <button class="btn-secondary" onclick="closeMappingModal()" id="cancel-mapping-btn"></button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="confirmation-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirmation-title"></h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirmation-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-success" onclick="confirmAction(true)" id="yes-btn"></button>
+                <button class="btn-secondary" onclick="confirmAction(false)" id="no-btn"></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="account-delete-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="account-delete-title"></h3>
+            </div>
+            <div class="modal-body">
+                <p id="account-delete-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger" onclick="confirmAccountDelete(true)" id="delete-account-confirm-btn"></button>
+                <button class="btn-secondary" onclick="confirmAccountDelete(false)" id="cancel-account-delete-btn"></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="template-delete-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="template-delete-title"></h3>
+            </div>
+            <div class="modal-body">
+                <p id="template-delete-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger" onclick="confirmTemplateDelete(true)" id="delete-template-confirm-btn"></button>
+                <button class="btn-secondary" onclick="confirmTemplateDelete(false)" id="cancel-template-delete-btn"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Uninstall Modal Root (V2 will render here) -->
+    <div id="uninstall-root"></div>
+    
+    <!-- Email Sending Progress Modal -->
+    <div id="sending-progress-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 900px; width: 90%; background: #2a2a2a; color: #e0e0e0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #e0e0e0; border-bottom: 2px solid #667eea;">
+                <h3 id="sending-modal-title" style="margin: 0; color: #e0e0e0;">📧 E-posta Gönderimi</h3>
+            </div>
+            <div class="modal-body" style="padding: 20px; background: #1a1a1a;">
+                <!-- Status Section -->
+                <div class="sending-status-section" style="text-align: center; margin-bottom: 20px;">
+                    <h2 id="sending-status-text" style="color: #667eea;">⏳ Gönderim devam ediyor...</h2>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="progress-container" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span id="sending-progress-label" style="color: #b0b0b0;">İlerleme</span>
+                        <span id="sending-progress-percent" style="color: #b0b0b0; font-weight: bold;">0%</span>
+                    </div>
+                    <div style="background: #333; border-radius: 10px; overflow: hidden; height: 30px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">
+                        <div id="sending-progress-bar" style="background: linear-gradient(90deg, #667eea, #764ba2); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);">
+                            <span id="sending-progress-text" style="color: #fff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5);"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statistics -->
+                <div class="sending-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #1a3d5c, #2c5f8d); padding: 15px; border-radius: 8px; border: 1px solid #3498db;">
+                        <div style="color: #a0c4e0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Toplam</div>
+                        <div id="sending-total" style="font-size: 24px; font-weight: bold; color: #fff;">0</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #1e4d2b, #2d6a3e); padding: 15px; border-radius: 8px; border: 1px solid #27ae60;">
+                        <div style="color: #a0d8b0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">✅ Başarılı</div>
+                        <div id="sending-success" style="font-size: 24px; font-weight: bold; color: #4ade80;">0</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #5c1a1a, #8d2c2c); padding: 15px; border-radius: 8px; border: 1px solid #e74c3c;">
+                        <div style="color: #e0a0a0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">❌ Başarısız</div>
+                        <div id="sending-failed" style="font-size: 24px; font-weight: bold; color: #ff6b6b;">0</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #5c4a1a, #8d6f2c); padding: 15px; border-radius: 8px; border: 1px solid #f39c12;">
+                        <div style="color: #e0c880; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">⏰ Bekliyor</div>
+                        <div id="sending-pending" style="font-size: 24px; font-weight: bold; color: #ffc107;">0</div>
+                    </div>
+                </div>
+                
+                <!-- Time Stats -->
+                <div class="time-stats" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <div style="text-align: center; padding: 10px; background: #2a2a2a; border-radius: 5px; border: 1px solid #444;">
+                        <div style="color: #888; font-size: 12px;">Geçen Süre</div>
+                        <div id="sending-elapsed" style="font-weight: bold; color: #e0e0e0;">00:00:00</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #2a2a2a; border-radius: 5px; border: 1px solid #444;">
+                        <div style="color: #888; font-size: 12px;">Tahmini Kalan</div>
+                        <div id="sending-remaining" style="font-weight: bold; color: #e0e0e0;">--:--:--</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #2a2a2a; border-radius: 5px; border: 1px solid #444;">
+                        <div style="color: #888; font-size: 12px;">Hız</div>
+                        <div id="sending-speed" style="font-weight: bold; color: #e0e0e0;">0 e-posta/dk</div>
+                    </div>
+                </div>
+                
+                <!-- Current Email Being Sent -->
+                <div id="sending-current-container" style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444;">
+                    <h4 style="margin: 0 0 10px 0; color: #667eea;">📤 Gönderiliyor:</h4>
+                    <div id="sending-current-email" style="font-family: monospace; color: #4ade80;">-</div>
+                </div>
+                
+                <!-- Detailed Log -->
+                <div class="sending-log" style="background: #0f0f0f; color: #b0b0b0; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; border: 1px solid #333;">
+                    <h4 style="margin: 0 0 10px 0; color: #667eea;">📋 Detaylı Log:</h4>
+                    <div id="sending-log-content" style="font-family: monospace; font-size: 12px; line-height: 1.6;">
+                        <!-- Log entries will be added here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; background: #1a1a1a; border-top: 1px solid #444;">
+                <button class="btn-danger" onclick="pauseSending()" id="sending-stop-btn">⏸️ Duraklat</button>
+                <button class="btn-primary" onclick="closeSendingModal()" id="sending-close-btn" disabled>Kapat</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Uninstall Results Modal -->
+    <div id="uninstall-results-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+<h3 id="uninstall-results-title"></h3>
+            </div>
+            <div class="modal-body">
+                <div id="uninstall-results-content">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="closeUninstallResultsModal()" id="close-results-btn">Close</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/src/js/tinymceSetup.js"></script>
+    <script type="module" src="/src/js/templateManagement.js"></script>
+    <script type="module" src="/src/js/progress-modal.js"></script>
+    <script type="module" src="/src/js/sendManagement.js"></script>
+    <script type="module" src="/src/js/utils.js"></script>
+    <script type="module" src="/src/js/accountManagement.js"></script>
+    <script type="module" src="/src/js/contactManagement.js"></script>
+    <script type="module" src="/src/js/logManagement.js"></script>
+    <script type="module" src="/src/js/attachmentManagement.js"></script>
+    <script type="module" src="/src/js/dataManagement.js"></script>
+    <script type="module" src="/src/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+@import url('./reset_base_layout.css');
+@import url('./sidebar_logs.css');
+@import url('./navigation_hamburger.css');
+@import url('./buttons_loading.css');
+@import url('./forms_grid_inputs.css');
+@import url('./table_attachment.css');
+@import url('./modal_dialog_progress.css');
+@import url('./logs_notifications_media.css');
+@import url('./preview_fullscreen.css');
+@import url('./tinymce-isolation.css');
+
+/* Data Management Styles */
+/* Utility theme classes to support card/bg-base-* used in uninstall modal */
+.card { border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.card-body { padding: 12px; }
+.bg-base-200 { background: #f1f5f9; color: #1f2937; }
+.bg-base-100 { background: #f8f9fa; color: #1f2937; border: 1px solid #dee2e6; }
+.text-base-content { color: #1f2937; }
+.data-info {
+    margin-bottom: 15px;
+}
+
+.data-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.data-actions button {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* Uninstall Modal Styles */
+.uninstall-options {
+    padding: 10px 0;
+}
+
+.uninstall-options #uninstall-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+    color: #856404;
+    font-weight: bold;
+}
+
+.data-info-preview {
+    margin-top: 15px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.data-info-preview h4 {
+    margin: 0 0 10px 0;
+    color: #495057;
+}
+
+.data-info-preview ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.data-info-preview li {
+    margin-bottom: 5px;
+}
+
+/* Uninstall Results Styles */
+.uninstall-results {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.alert {
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border: 1px solid;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.alert-info {
+    background-color: #cce7ff;
+    border-color: #b3d9ff;
+    color: #0056b3;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.removed-files {
+    margin: 15px 0;
+}
+
+.removed-files h4 {
+    margin: 0 0 10px 0;
+    color: #495057;
+}
+
+.removed-files ul {
+    max-height: 150px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px 10px 10px 30px;
+    margin: 0;
+}
+
+.removed-files li {
+    font-family: monospace;
+    font-size: 0.9em;
+    margin-bottom: 3px;
+    word-break: break-all;
+}
+
+.uninstall-instructions {
+    margin-top: 15px;
+}
+
+.uninstall-instructions h4 {
+    margin: 0 0 10px 0;
+    color: #495057;
+}
+
+.uninstall-instructions pre {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 0;
+    font-size: 0.9em;
+    line-height: 1.4;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+@media (max-width: 768px) {
+    .data-actions {
+        flex-direction: column;
+    }
+    
+    .data-actions button {
+        width: 100%;
+        min-width: auto;
+    }
+}
+
+/* Countdown animation */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+        color: #ffeb3b;
+    }
+    100% {
+        transform: scale(1);
+    }
+}

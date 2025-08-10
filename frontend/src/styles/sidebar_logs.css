@@ -1,0 +1,107 @@
+/* ==== SIDEBAR & LOGS ==== */
+#log-sidebar {
+  background: linear-gradient(180deg, #34495e 0%, #2c3e50 100%);
+  border-left: 2px solid #3498db;
+  color: #ecf0f1;
+  width: 350px;
+  max-width: 90vw;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  overflow-y: auto;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: "Consolas", "Courier New", monospace;
+  z-index: 1000;
+  padding: 20px;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+  transform: translateX(-100%);
+  opacity: 0;
+  visibility: hidden;
+}
+
+#log-sidebar.hidden {
+  transform: translateX(-100%);
+  opacity: 0;
+  visibility: hidden;
+  box-shadow: none;
+}
+
+#log-sidebar:not(.hidden) {
+  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+#log-sidebar h3 {
+  margin-top: 50px;
+  color: #3498db;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 10px;
+  transition: all 0.3s ease;
+}
+
+#log-sidebar h3:hover {
+  color: #5dade2;
+  border-bottom-color: #5dade2;
+}
+
+#log-sidebar pre {
+  white-space: pre-wrap;
+  line-height: 1.35;
+  margin: 0;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+/* Smooth scrollbar for sidebar */
+#log-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+#log-sidebar::-webkit-scrollbar-track {
+  background: #2c3e50;
+  border-radius: 4px;
+}
+
+#log-sidebar::-webkit-scrollbar-thumb {
+  background: #3498db;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+#log-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #5dade2;
+}
+
+/* Hamburger button animation */
+#hamburger {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: rotate(0deg);
+}
+
+#hamburger:hover {
+  transform: rotate(90deg) scale(1.1);
+  background: #3498db;
+  color: white;
+}
+
+/* Content area adjustment when sidebar is open */
+#content {
+  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#content.sidebar-open {
+  margin-left: 350px;
+}
+
+@media (max-width: 768px) {
+  #content.sidebar-open {
+    margin-left: 0;
+  }
+  
+  #log-sidebar {
+    width: 100vw;
+    max-width: 100vw;
+  }
+}
