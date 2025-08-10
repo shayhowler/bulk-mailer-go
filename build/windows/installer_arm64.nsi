@@ -1,15 +1,24 @@
+; build/windows/installer_arm64.nsi
 !define APP_NAME        "Bulk Mailer Go"
 !define APP_SHORT       "BulkMailerGo"
 !define APP_PUBLISHER   "Burak Aksoy"
 !define APP_VERSION     "1.0.0"
 !define EXE_NAME        "BulkMailerGo_arm64.exe"
 
-!define WORKSPACE       "D:\\a\\bulk-mailer-go\\bulk-mailer-go"
-!define SRC_EXE_ARM64   "${WORKSPACE}\\build\\bin\\arm64\\${EXE_NAME}"
+!ifndef WORKSPACE
+!define WORKSPACE "D:\\a\\bulk-mailer-go\\bulk-mailer-go"
+!endif
+
+!define SRC_EXE_ARM64 "${WORKSPACE}\\build\\bin\\arm64\\${EXE_NAME}"
+!define OUT_DIR       "${WORKSPACE}\\build\\windows\\dist"
+!define OUT_FILE      "${OUT_DIR}\\${APP_SHORT}_Setup_ARM64_${APP_VERSION}.exe"
 
 !define INSTALL_DIR_REG "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_SHORT}-ARM64"
 
-OutFile "dist\\${APP_SHORT}_Setup_ARM64_${APP_VERSION}.exe"
+DirVerify on
+CreateDirectory "${OUT_DIR}"
+OutFile "${OUT_FILE}"
+
 InstallDir "$PROGRAMFILES64\\${APP_NAME}"
 RequestExecutionLevel admin
 
@@ -23,8 +32,6 @@ RequestExecutionLevel admin
 
 Section "Install"
   SetOutPath "$INSTDIR"
-
-  ; Kritik satır: Mutlak, tırnak içinde yol veriyoruz
   File "${SRC_EXE_ARM64}"
 
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
@@ -49,8 +56,6 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\\${APP_NAME}\\Uninstall.lnk"
   RMDir  "$SMPROGRAMS\\${APP_NAME}"
   Delete "$DESKTOP\\${APP_NAME}.lnk"
-
   RMDir /r "$INSTDIR"
-
   DeleteRegKey HKLM "${INSTALL_DIR_REG}"
 SectionEnd

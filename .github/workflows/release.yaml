@@ -1,3 +1,4 @@
+# .github/workflows/release.yml
 name: release
 
 on:
@@ -51,30 +52,20 @@ jobs:
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 
       # ---------- Linux ----------
-      - name: Install Linux GUI deps (Ubuntu symlink + FUSE)
+      - name: Install Linux GUI deps
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libfuse2
-          sudo apt-get install -y \
-            build-essential \
-            pkg-config \
-            libgtk-3-dev \
-            libglib2.0-dev \
-            libgirepository1.0-dev \
-            gir1.2-gtk-3.0 \
-            libayatana-appindicator3-dev \
+          sudo apt-get install -y libfuse2 build-essential pkg-config libgtk-3-dev libglib2.0-dev \
+            libgirepository1.0-dev gir1.2-gtk-3.0 libayatana-appindicator3-dev \
             libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
             libwebkit2gtk-4.1-dev
           if [ -d "/usr/include/webkitgtk-4.1" ] && [ ! -e "/usr/include/webkitgtk-4.0" ]; then
             sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0
           fi
-          PKGDIR="/usr/lib/x86_64-linux-gnu/pkgconfig"
-          if [ ! -d "$PKGDIR" ]; then
-            PKGDIR="/usr/lib/pkgconfig"
-          fi
+          PKGDIR="/usr/lib/x86_64-linux-gnu/pkgconfig"; [ -d "$PKGDIR" ] || PKGDIR="/usr/lib/pkgconfig"
           if [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then
             sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"
           fi
@@ -85,7 +76,7 @@ jobs:
       - name: Frontend build
         run: npm run build --prefix frontend
 
-      - name: Wails build (Linux with PKG_CONFIG_PATH)
+      - name: Wails build (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -105,9 +96,7 @@ jobs:
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
           rm -rf "${APPDIR}"
-          mkdir -p "${APPDIR}/usr/bin"
-          mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
-          mkdir -p "${APPDIR}/usr/share/applications"
+          mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${APPDIR}/usr/share/applications"
           cp "${BIN_PATH}" "${APPDIR}/usr/bin/${{ env.PROJECT_NAME }}"
           if [ -f "${ICON_SRC}" ]; then
             cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
@@ -143,7 +132,7 @@ jobs:
         if: runner.os == 'macOS'
         run: wails build
 
-      - name: Create macOS DMG from .app
+      - name: Create macOS DMG
         if: runner.os == 'macOS'
         shell: bash
         run: |
@@ -167,7 +156,6 @@ jobs:
           mkdir -p "${DMG_DIR}"
           cp -R "${SRC_APP}" "${DMG_DIR}/"
           ln -s /Applications "${DMG_DIR}/Applications"
-
           hdiutil create -volname "${APP_DESKTOP_NAME}" -srcfolder "${DMG_DIR}" -ov -format UDZO "${OUT_DMG}"
           rm -rf "${DMG_DIR}"
 
@@ -177,13 +165,13 @@ jobs:
           mkdir -p release_assets
           [ -f "${{ env.PROJECT_NAME }}_macOS.dmg" ] && cp "${{ env.PROJECT_NAME }}_macOS.dmg" release_assets/ || true
 
-      # ---------- Windows (x64 + ARM64 + NSIS) ----------
-      - name: Build Windows x64 (Wails) and stage to unique path
+      # ---------- Windows ----------
+      - name: Build Windows x64 (Wails) and stage
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-          $env:GOOS = "windows"
+          $env:GOOS  = "windows"
           $env:GOARCH = "amd64"
           wails build
           New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_X64 }}") -Force | Out-Null
@@ -199,15 +187,16 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-          if (!(Test-Path dist)) { New-Item -ItemType Directory -Path dist | Out-Null }
-          makensis ".\build\windows\installer_x64.nsi"
+          $ws = (Get-Location).Path
+          New-Item -ItemType Directory -Path "build\windows\dist" -Force | Out-Null
+          & makensis "-DWORKSPACE=$ws" ".\build\windows\installer_x64.nsi"
 
-      - name: Build Windows ARM64 (Wails) and stage to unique path
+      - name: Build Windows ARM64 (Wails) and stage
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-          $env:GOOS = "windows"
+          $env:GOOS  = "windows"
           $env:GOARCH = "arm64"
           wails build
           New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_ARM64 }}") -Force | Out-Null
@@ -219,20 +208,19 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-          makensis ".\build\windows\installer_arm64.nsi"
+          $ws = (Get-Location).Path
+          New-Item -ItemType Directory -Path "build\windows\dist" -Force | Out-Null
+          & makensis "-DWORKSPACE=$ws" ".\build\windows\installer_arm64.nsi"
 
       - name: Prepare outputs (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           New-Item -ItemType Directory -Path release_assets -Force | Out-Null
-          # Ham exe'leri de ekle
           if (Test-Path "${{ env.WIN_EXE_X64 }}")   { Copy-Item "${{ env.WIN_EXE_X64 }}"   "release_assets\${{ env.PROJECT_NAME }}_windows_amd64.exe" -Force }
           if (Test-Path "${{ env.WIN_EXE_ARM64 }}") { Copy-Item "${{ env.WIN_EXE_ARM64 }}" "release_assets\${{ env.PROJECT_NAME }}_windows_arm64.exe" -Force }
-          # NSIS installer’lar (dist altında)
-          Get-ChildItem dist\ -Filter "${{ env.PROJECT_NAME }}_Setup_*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
+          Get-ChildItem "build\windows\dist" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
 
-      # ---------- Upload build outputs per OS ----------
       - name: Upload build outputs
         uses: actions/upload-artifact@v4
         with:
@@ -255,11 +243,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release_assets
-          # Linux AppImage
           cp artifacts/ubuntu-latest-outputs/*AppImage release_assets/ 2>/dev/null || true
-          # macOS DMG
           cp artifacts/macos-latest-outputs/*.dmg release_assets/ 2>/dev/null || true
-          # Windows EXE + Installers
           cp artifacts/windows-latest-outputs/*.exe release_assets/ 2>/dev/null || true
           ls -la release_assets
 
