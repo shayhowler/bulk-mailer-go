@@ -2,7 +2,10 @@
 !define APP_SHORT       "BulkMailerGo"
 !define APP_PUBLISHER   "Burak Aksoy"
 !define APP_VERSION     "1.0.0"
-!define EXE_NAME        "BulkMailerGo_arm64.exe" ; staged unique name
+!define EXE_NAME        "BulkMailerGo_arm64.exe"
+
+!define WORKSPACE       "D:\\a\\bulk-mailer-go\\bulk-mailer-go"
+!define SRC_EXE_ARM64   "${WORKSPACE}\\build\\bin\\arm64\\${EXE_NAME}"
 
 !define INSTALL_DIR_REG "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_SHORT}-ARM64"
 
@@ -20,8 +23,9 @@ RequestExecutionLevel admin
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  ; Include exactly the staged file to avoid "no files found"
-  File "build\\bin\\arm64\\${EXE_NAME}"
+
+  ; Kritik satır: Mutlak, tırnak içinde yol veriyoruz
+  File "${SRC_EXE_ARM64}"
 
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
 

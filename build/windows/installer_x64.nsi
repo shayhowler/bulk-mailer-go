@@ -2,7 +2,11 @@
 !define APP_SHORT       "BulkMailerGo"
 !define APP_PUBLISHER   "Burak Aksoy"
 !define APP_VERSION     "1.0.0"
-!define EXE_NAME        "BulkMailerGo_x64.exe" ; staged unique name
+!define EXE_NAME        "BulkMailerGo_x64.exe"
+
+; Mutlak kaynak yolu: GitHub Actions Windows runner çalışma kökü
+!define WORKSPACE       "D:\\a\\bulk-mailer-go\\bulk-mailer-go"
+!define SRC_EXE_X64     "${WORKSPACE}\\build\\bin\\x64\\${EXE_NAME}"
 
 !define INSTALL_DIR_REG "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_SHORT}-x64"
 
@@ -20,8 +24,9 @@ RequestExecutionLevel admin
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  ; Include exactly the staged file to avoid "no files found"
-  File "build\\bin\\x64\\${EXE_NAME}"
+
+  ; Kritik satır: Mutlak, tırnak içinde yol veriyoruz
+  File "${SRC_EXE_X64}"
 
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
 
