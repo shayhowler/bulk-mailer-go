@@ -1,4 +1,3 @@
-; build/windows/installer_x64.nsi
 !define APP_NAME        "Bulk Mailer Go"
 !define APP_SHORT       "BulkMailerGo"
 !define APP_PUBLISHER   "Burak Aksoy"
@@ -15,7 +14,6 @@
 
 !define INSTALL_DIR_REG "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_SHORT}-x64"
 
-DirVerify on
 CreateDirectory "${OUT_DIR}"
 OutFile "${OUT_FILE}"
 
