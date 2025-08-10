@@ -1,28 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-  <!-- Hardened Runtime default: istisnaları kapalı -->
-  <key>com.apple.security.cs.allow-jit</key>
-  <false/>
-  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-  <false/>
-  <key>com.apple.security.cs.disable-library-validation</key>
-  <false/>
+  <dict>
+    <!-- Hardened Runtime: gereksiz istisnalar kapalı -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <false/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <false/>
 
-  <!-- Debug kapalı -->
-  <key>com.apple.security.get-task-allow</key>
-  <false/>
+    <!-- Debug kapalı -->
+    <key>com.apple.security.get-task-allow</key>
+    <false/>
 
-  <!-- Network -->
-  <key>com.apple.security.network.client</key>
-  <true/>
-  <key>com.apple.security.network.server</key>
-  <false/>
+    <!-- Network erişimi: client yeterli -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.security.network.server</key>
+    <false/>
 
-  <!-- Files via picker -->
-  <key>com.apple.security.files.user-selected.read-write</key>
-  <true/>
-
-</dict>
+    <!-- Kullanıcının seçtiği dosyalara erişim -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+  </dict>
 </plist>

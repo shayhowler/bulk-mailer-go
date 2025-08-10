@@ -8,6 +8,7 @@
 @import url('./logs_notifications_media.css');
 @import url('./preview_fullscreen.css');
 @import url('./tinymce-isolation.css');
+@import url('./language_selector.css');
 
 /* Data Management Styles */
 /* Utility theme classes to support card/bg-base-* used in uninstall modal */

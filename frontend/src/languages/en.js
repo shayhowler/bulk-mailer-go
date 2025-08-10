@@ -147,6 +147,16 @@ export const en = {
         dark: "🌙 Dark"
     },
     
+    // Language Selection
+    language: {
+        name: "English",
+        shortName: "EN",
+        templates: {
+            all: "All Templates",
+            filtered: "English Templates"
+        }
+    },
+
     // Common
     common: {
         clear: "🗑️ Clear",

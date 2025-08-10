@@ -11,8 +11,8 @@
     <string>{{.OutputFilename}}</string>
 
     <key>CFBundleIdentifier</key>
-    <string>{{.BundleID}}</string>
-
+    <string>com.bulkmailer.app</string>
+    
     <key>CFBundleVersion</key>
     <string>{{.Info.ProductVersion}}</string>
 

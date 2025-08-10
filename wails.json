@@ -38,11 +38,11 @@
         },
         "NSRequiresAquaSystemAppearance": false
       },
-      "icon": "build/appicon.icns",
+      "icon": "build/appicon.png",
       "minimumSystemVersion": "10.15"
     },
     "windows": {
-      "icon": "build/appicon.ico",
+      "icon": "build/icon.ico",
       "fileVersion": "1.0.0",
       "productVersion": "1.0.0"
     },

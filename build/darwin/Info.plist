@@ -10,6 +10,9 @@
     <key>CFBundleExecutable</key>
     <string>{{.OutputFilename}}</string>
 
+    <key>CFBundleIdentifier</key>
+    <string>com.bulkmailer.app</string>
+
     <key>CFBundleVersion</key>
     <string>{{.Info.ProductVersion}}</string>
 
@@ -22,8 +25,14 @@
     <key>LSMinimumSystemVersion</key>
     <string>10.15.0</string>
 
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.productivity</string>
+
     <key>NSHighResolutionCapable</key>
     <true/>
+
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
 
     <key>NSHumanReadableCopyright</key>
     <string>{{.Info.Copyright}}</string>

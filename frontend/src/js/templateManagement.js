@@ -39,8 +39,8 @@ export function updateTemplatesTable() {
         
         // Language display
         let languageDisplay = '';
-        if (template.language === 'tr') languageDisplay = '🇹🇷';
-        else if (template.language === 'en') languageDisplay = '🇺🇸';
+        if (template.language === 'tr') languageDisplay = window.getCountryFlag ? window.getCountryFlag('TR') : 'TR';
+        else if (template.language === 'en') languageDisplay = window.getCountryFlag ? window.getCountryFlag('US') : 'US';
         
         // No HTML column - only Name, Subject, Content Preview, Language, Actions
         tr.innerHTML = `
@@ -68,8 +68,8 @@ export function updateTemplateSelect(filterLanguage = 'all') {
         }
         
         let languagePrefix = '';
-        if (templateLang === 'tr') languagePrefix = '🇹🇷 ';
-        else if (templateLang === 'en') languagePrefix = '🇺🇸 ';
+        if (templateLang === 'tr') languagePrefix = (window.getCountryFlag ? window.getCountryFlag('TR') : 'TR') + ' ';
+        else if (templateLang === 'en') languagePrefix = (window.getCountryFlag ? window.getCountryFlag('US') : 'US') + ' ';
         
         const option = document.createElement('option');
         option.value = template.name;

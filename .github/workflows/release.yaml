@@ -48,19 +48,14 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 
-      # Ubuntu 24.04: WebKitGTK 4.1 kur, 4.0 adına symlink ata, FUSE ekle
+      # ---------- Linux ----------
       - name: Install Linux GUI deps (Ubuntu symlink + FUSE)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
-
           sudo apt-get update
-
-          # AppImage için FUSE (libfuse.so.2 sağlar)
           sudo apt-get install -y libfuse2
-
-          # Derleme & GUI bağımlılıkları
           sudo apt-get install -y \
             build-essential \
             pkg-config \
@@ -71,22 +66,14 @@ jobs:
             libayatana-appindicator3-dev \
             libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
             libwebkit2gtk-4.1-dev
-
-          # Include symlink: /usr/include/webkitgtk-4.0 -> webkitgtk-4.1
           if [ -d "/usr/include/webkitgtk-4.1" ] && [ ! -e "/usr/include/webkitgtk-4.0" ]; then
-            echo "Creating include symlink: /usr/include/webkitgtk-4.0 -> webkitgtk-4.1"
             sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0
           fi
-
-          # pkg-config symlink: webkit2gtk-4.0.pc -> webkit2gtk-4.1.pc
           PKGDIR="/usr/lib/x86_64-linux-gnu/pkgconfig"
           if [ ! -d "$PKGDIR" ]; then
             PKGDIR="/usr/lib/pkgconfig"
           fi
-          echo "Using pkgconfig dir: $PKGDIR"
-
           if [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then
-            echo "Creating pkg-config symlink: webkit2gtk-4.0.pc -> webkit2gtk-4.1.pc"
             sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"
           fi
 
@@ -96,23 +83,14 @@ jobs:
       - name: Frontend build
         run: npm run build --prefix frontend
 
-      # Linux'ta PKG_CONFIG_PATH'i garanti altına alarak build
-      - name: Wails build (Prod, Linux with PKG_CONFIG_PATH)
+      - name: Wails build (Linux with PKG_CONFIG_PATH)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
           export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
-          echo "Verifying pkg-config entries:"
-          pkg-config --list-all | grep -E 'webkit2gtk|gtk\+|gio-unix' || true
           wails build
 
-      # Diğer platformlarda normal build
-      - name: Wails build (Prod)
-        if: runner.os != 'Linux'
-        run: wails build
-
-      # Linux: AppImage oluştur (ikon adı uyumu düzeltildi)
       - name: Build AppImage (Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -122,27 +100,17 @@ jobs:
           BIN_PATH="build/bin/${{ env.PROJECT_NAME }}"
           ICON_SRC="${{ env.ICON_PNG }}"
           DESKTOP_FILE="${{ env.PROJECT_NAME }}.desktop"
-
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
-
           rm -rf "${APPDIR}"
           mkdir -p "${APPDIR}/usr/bin"
           mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
           mkdir -p "${APPDIR}/usr/share/applications"
-
-          # Binary
           cp "${BIN_PATH}" "${APPDIR}/usr/bin/${{ env.PROJECT_NAME }}"
-
-          # Icon: hem hicolor'a hem de köke appicon.png olarak kopyala
           if [ -f "${ICON_SRC}" ]; then
             cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
             cp "${ICON_SRC}" "${APPDIR}/appicon.png"
-          else
-            echo "Icon not found at ${ICON_SRC}"
           fi
-
-          # .desktop (Icon uzantısız: appicon)
           cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF
           [Desktop Entry]
           Type=Application
@@ -153,8 +121,6 @@ jobs:
           Comment=Professional Email Marketing Application
           Terminal=false
           EOF
-
-          # AppRun
           cat > "${APPDIR}/AppRun" <<'EOF'
           #!/bin/sh
           HERE="$(dirname "$(readlink -f "$0")")"
@@ -162,49 +128,103 @@ jobs:
           exec "$HERE/usr/bin/BulkMailerGo" "$@"
           EOF
           chmod +x "${APPDIR}/AppRun"
-
-          # AppImage oluştur
           ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage"
 
-      # Artifacts arşivle
-      - name: Archive artifacts (Linux)
+      - name: Prepare outputs (Linux)
         if: runner.os == 'Linux'
         run: |
-          tar -czf linux_artifacts.tgz build/bin/*
+          mkdir -p release_assets
+          [ -f "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage" ] && cp "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage" release_assets/ || true
 
-      - name: Archive artifacts (macOS)
+      # ---------- macOS ----------
+      - name: Wails build (macOS)
+        if: runner.os == 'macOS'
+        run: wails build
+
+      - name: Create macOS DMG from .app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_NAME="${APP_DESKTOP_NAME}.app"
+          ALT_NAME="${PROJECT_NAME}.app"
+          OUT_DMG="${PROJECT_NAME}_macOS.dmg"
+
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            SRC_APP="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            SRC_APP="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            ls -la build/bin || true
+            exit 1
+          fi
+
+          DMG_DIR="dmgroot"
+          rm -rf "${DMG_DIR}"
+          mkdir -p "${DMG_DIR}"
+          cp -R "${SRC_APP}" "${DMG_DIR}/"
+          ln -s /Applications "${DMG_DIR}/Applications"
+
+          hdiutil create -volname "${APP_DESKTOP_NAME}" -srcfolder "${DMG_DIR}" -ov -format UDZO "${OUT_DMG}"
+          rm -rf "${DMG_DIR}"
+
+      - name: Prepare outputs (macOS)
         if: runner.os == 'macOS'
         run: |
-          tar -czf mac_artifacts.tgz build/bin/*
+          mkdir -p release_assets
+          [ -f "${{ env.PROJECT_NAME }}_macOS.dmg" ] && cp "${{ env.PROJECT_NAME }}_macOS.dmg" release_assets/ || true
 
-      - name: Archive artifacts (Windows)
+      # ---------- Windows (x64 + ARM64 + NSIS) ----------
+      - name: Build Windows x64 (Wails)
         if: runner.os == 'Windows'
+        shell: powershell
         run: |
-          powershell -Command "Compress-Archive -Path build\\bin\\* -DestinationPath win_artifacts.zip"
+          $env:GOOS = "windows"
+          $env:GOARCH = "amd64"
+          wails build
+          New-Item -ItemType Directory -Path build\bin\x64 -Force | Out-Null
+          Copy-Item build\bin\${{ env.PROJECT_NAME }}.exe build\bin\x64\ -Force
 
-      # Artifacts yükle
-      - name: Upload Linux artifacts
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux_artifacts
-          path: |
-            linux_artifacts.tgz
-            BulkMailerGo_linux_x86_64.AppImage
-
-      - name: Upload macOS artifacts
-        if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac_artifacts
-          path: mac_artifacts.tgz
-
-      - name: Upload Windows artifacts
+      - name: Build Windows ARM64 (Wails)
         if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $env:GOOS = "windows"
+          $env:GOARCH = "arm64"
+          wails build
+          New-Item -ItemType Directory -Path build\bin\arm64 -Force | Out-Null
+          Copy-Item build\bin\${{ env.PROJECT_NAME }}.exe build\bin\arm64\ -Force
+
+      - name: Setup NSIS
+        if: runner.os == 'Windows'
+        run: choco install nsis -y
+
+      - name: Build NSIS installers (x64 + ARM64)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          if (!(Test-Path dist)) { New-Item -ItemType Directory -Path dist | Out-Null }
+          makensis .\build\windows\installer_x64.nsi
+          makensis .\build\windows\installer_arm64.nsi
+
+      - name: Prepare outputs (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path release_assets -Force | Out-Null
+          # Ham exe'ler (opsiyonel)
+          if (Test-Path build\bin\x64\${{ env.PROJECT_NAME }}.exe) { Copy-Item build\bin\x64\${{ env.PROJECT_NAME }}.exe release_assets\${{ env.PROJECT_NAME }}_windows_amd64.exe -Force }
+          if (Test-Path build\bin\arm64\${{ env.PROJECT_NAME }}.exe) { Copy-Item build\bin\arm64\${{ env.PROJECT_NAME }}.exe release_assets\${{ env.PROJECT_NAME }}_windows_arm64.exe -Force }
+          # NSIS çıktılarını da ekle
+          Get-ChildItem dist\ -Filter "${{ env.PROJECT_NAME }}_Setup_*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
+
+      # ---------- Upload build outputs per OS ----------
+      - name: Upload build outputs
         uses: actions/upload-artifact@v4
         with:
-          name: win_artifacts
-          path: win_artifacts.zip
+          name: ${{ runner.os }}-outputs
+          path: release_assets/*
 
   publish:
     name: Publish GitHub Release
@@ -212,24 +232,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download artifacts
+      - name: Download all outputs
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Prepare release assets
+      - name: Prepare final assets
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           mkdir -p release_assets
-          cp artifacts/linux_artifacts/linux_artifacts.tgz release_assets/ || true
-          cp artifacts/linux_artifacts/BulkMailerGo_linux_x86_64.AppImage release_assets/ || true
-          cp artifacts/mac_artifacts/mac_artifacts.tgz release_assets/ || true
-          cp artifacts/win_artifacts/win_artifacts.zip release_assets/ || true
+          # Linux AppImage
+          cp artifacts/ubuntu-latest-outputs/*AppImage release_assets/ 2>/dev/null || true
+          # macOS DMG
+          cp artifacts/macos-latest-outputs/*.dmg release_assets/ 2>/dev/null || true
+          # Windows EXE + Installers
+          cp artifacts/windows-latest-outputs/*.exe release_assets/ 2>/dev/null || true
           ls -la release_assets
 
       - name: Create GitHub Release

@@ -335,10 +335,15 @@ export function updateSelectedRows() {
     state.selectedRows = Array.from(document.querySelectorAll('.select-row:checked'))
         .map(cb => parseInt(cb.dataset.index));
     
+    // Update select-all checkbox state
+    const selectAllCheckbox = document.getElementById('select-all');
+    const allCheckboxes = document.querySelectorAll('.select-row');
+    selectAllCheckbox.checked = allCheckboxes.length > 0 && state.selectedRows.length === allCheckboxes.length;
+    
     window.go.main.App.SetSelectedRows(state.selectedRows)
         .catch(console.error);
     
-            document.getElementById('continue-contacts-btn').disabled = state.selectedRows.length === 0;
+    document.getElementById('continue-contacts-btn').disabled = state.selectedRows.length === 0;
     updateContactCount();
     
     logToSystem(`${state.selectedRows.length} contacts selected`, 'info', { selectedRowCount: state.selectedRows.length });

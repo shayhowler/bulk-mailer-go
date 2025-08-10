@@ -1,5 +1,34 @@
 // Language management system
+import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill';
+
+// Initialize flag emoji polyfill
+polyfillCountryFlagEmojis();
+
 let currentLanguage = 'en';
+
+// Language options configuration
+const LANG_OPTIONS = {
+    'tr': { code: 'TR', name: 'Türkçe' },
+    'en': { code: 'US', name: 'English' }
+};
+
+// Get country flag using the polyfill - EXPORTED for global use
+export function getCountryFlag(countryCode) {
+    if (!countryCode || countryCode.length !== 2) {
+        return '🌍'; // World emoji as fallback
+    }
+    
+    // Convert country code to flag emoji using regional indicator symbols
+    const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 0x1F1E6 + char.charCodeAt(0) - 65);
+    
+    return String.fromCodePoint(...codePoints);
+}
+
+// Make it globally available for other modules
+window.getCountryFlag = getCountryFlag;
 
 // Translation data
 const translations = {
@@ -976,7 +1005,20 @@ export function initLanguage() {
     // Set language selector
     const langSelect = document.getElementById('language-select');
     if (langSelect) {
-        langSelect.value = currentLanguage;
+        // Clear any existing options
+        langSelect.innerHTML = '';
+        
+        // Add an option for each language
+        Object.entries(LANG_OPTIONS).forEach(([code, data]) => {
+            const option = document.createElement('option');
+            option.value = code;
+            const flag = getCountryFlag(data.code);
+            option.textContent = `${flag} ${data.name}`;
+            if (code === currentLanguage) {
+                option.selected = true;
+            }
+            langSelect.appendChild(option);
+        });
     }
     
     // Update all texts immediately

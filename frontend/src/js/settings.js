@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { logToSystem, showNotification } from './utils.js';
 import { COUNTRIES, TIMEZONES_BY_COUNTRY, ALL_TIMEZONES } from '../data/timezones.js';
-import { changeLanguage } from './languageManager.js';
+import { changeLanguage, getCountryFlag } from './languageManager.js';
 
 function populateCountryDropdown() {
   const countrySel = document.getElementById('settings-country');
@@ -14,7 +14,8 @@ function populateCountryDropdown() {
   COUNTRIES.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.code;
-    opt.textContent = `${c.flag} ${c.name}`;
+    const flag = getCountryFlag(c.code);
+    opt.textContent = `${flag} ${c.name}`;
     countrySel.appendChild(opt);
   });
 }

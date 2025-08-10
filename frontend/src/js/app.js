@@ -110,7 +110,8 @@ window.clearAllAttachments = clearAllAttachments;
 
 
 // Language Management
-window.changeLanguage = changeLanguageGlobal;
+window.changeLanguageGlobal = changeLanguageGlobal;
+window.changeLanguage = changeLanguageGlobal; // For backward compatibility
 window.getText = getText;
 window.getCurrentLanguage = getCurrentLanguage;
 

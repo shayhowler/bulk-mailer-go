@@ -11,10 +11,7 @@
         <div class="header-controls">
             <button id="hamburger">☰</button>
         </div>
-        <select id="language-select" onchange="changeLanguage()">
-            <option value="tr" id="tr-option"></option>
-            <option value="en" id="en-option"></option>
-        </select>
+<select id="language-select" onchange="changeLanguageGlobal()"></select>
         <div id="log-sidebar" class="hidden">
             <h3 id="logs-title"></h3>
             <div class="log-controls">
@@ -54,9 +51,9 @@
                         </div>
                         <div class="form-group">
                             <label id="default-language-label"></label>
-                            <select id="settings-default-language">
-                                <option value="tr">🇹🇷 Türkçe</option>
-                                <option value="en">🇺🇸 English</option>
+<select id="settings-default-language">
+                                <option value="tr" data-i18n="settings.language.tr"></option>
+                                <option value="en" data-i18n="settings.language.en"></option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -231,9 +228,9 @@
                 <div class="form-group" style="margin-bottom:10px;">
                     <label id="template-filter-label"></label>
                     <select id="templates-filter" onchange="filterTemplatesUI()">
-                        <option value="all">🌍 Tüm Şablonlar / All Templates</option>
-                        <option value="tr">🇹🇷 Türkçe Şablonlar</option>
-                        <option value="en">🇺🇸 English Templates</option>
+                        <option value="all">🌍 <span data-i18n="language.templates.all"></span></option>
+                        <option value="tr" data-i18n="language.templates.filtered"></option>
+                        <option value="en" data-i18n="language.templates.filtered"></option>
                     </select>
                 </div>
                 <div class="table-container">
@@ -266,7 +263,7 @@
                     <div class="form-group">
                         <label id="template-language-label"></label>
                         <select id="template-language">
-                            <option value="tr">🇹🇷 Türkçe</option>
+<option value="tr">🇹🇷 Türkçe</option>
                             <option value="en">🇺🇸 English</option>
                         </select>
                     </div>
@@ -319,9 +316,9 @@
                             <div class="form-group">
                                 <label id="template-filter-label"></label>
                                 <select id="template-filter" onchange="filterTemplates()">
-                                    <option value="all">🌍 Tüm Şablonlar / All Templates</option>
-                                    <option value="tr">🇹🇷 Türkçe Şablonlar</option>
-                                    <option value="en">🇺🇸 English Templates</option>
+<option value="all" data-i18n="templates.filter.all"></option>
+                                    <option value="tr" data-i18n="templates.filter.tr"></option>
+                                    <option value="en" data-i18n="templates.filter.en"></option>
                                 </select>
                             </div>
                         </div>

@@ -148,6 +148,16 @@ export const tr = {
         dark: "🌙 Koyu"
     },
     
+    // Language Selection
+    language: {
+        name: "Türkçe",
+        shortName: "TR",
+        templates: {
+            all: "Tüm Şablonlar",
+            filtered: "Türkçe Şablonlar"
+        }
+    },
+
     // Common
     common: {
         clear: "🗑️ Temizle",
