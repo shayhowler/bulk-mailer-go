@@ -15,6 +15,8 @@ env:
   PROJECT_NAME: "BulkMailerGo"
   APP_DESKTOP_NAME: "Bulk Mailer Go"
   ICON_PNG: "build/appicon.png"
+  WIN_EXE_X64: "build\\bin\\x64\\BulkMailerGo_x64.exe"
+  WIN_EXE_ARM64: "build\\bin\\arm64\\BulkMailerGo_arm64.exe"
 
 jobs:
   build:
@@ -176,7 +178,7 @@ jobs:
           [ -f "${{ env.PROJECT_NAME }}_macOS.dmg" ] && cp "${{ env.PROJECT_NAME }}_macOS.dmg" release_assets/ || true
 
       # ---------- Windows (x64 + ARM64 + NSIS) ----------
-      - name: Build Windows x64 (Wails) and stage
+      - name: Build Windows x64 (Wails) and stage to unique path
         if: runner.os == 'Windows'
         shell: powershell
         run: |
@@ -184,8 +186,9 @@ jobs:
           $env:GOOS = "windows"
           $env:GOARCH = "amd64"
           wails build
-          New-Item -ItemType Directory -Path build\bin\x64 -Force | Out-Null
-          Copy-Item build\bin\${{ env.PROJECT_NAME }}.exe build\bin\x64\ -Force
+          New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_X64 }}") -Force | Out-Null
+          Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" "${{ env.WIN_EXE_X64 }}" -Force
+          Get-Item "${{ env.WIN_EXE_X64 }}" | Format-Table FullName,Length
 
       - name: Setup NSIS
         if: runner.os == 'Windows'
@@ -197,9 +200,9 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           if (!(Test-Path dist)) { New-Item -ItemType Directory -Path dist | Out-Null }
-          makensis .\build\windows\installer_x64.nsi
+          makensis ".\build\windows\installer_x64.nsi"
 
-      - name: Build Windows ARM64 (Wails) and stage
+      - name: Build Windows ARM64 (Wails) and stage to unique path
         if: runner.os == 'Windows'
         shell: powershell
         run: |
@@ -207,25 +210,26 @@ jobs:
           $env:GOOS = "windows"
           $env:GOARCH = "arm64"
           wails build
-          New-Item -ItemType Directory -Path build\bin\arm64 -Force | Out-Null
-          Copy-Item build\bin\${{ env.PROJECT_NAME }}.exe build\bin\arm64\ -Force
+          New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_ARM64 }}") -Force | Out-Null
+          Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" "${{ env.WIN_EXE_ARM64 }}" -Force
+          Get-Item "${{ env.WIN_EXE_ARM64 }}" | Format-Table FullName,Length
 
       - name: Build NSIS installer (ARM64)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-          makensis .\build\windows\installer_arm64.nsi
+          makensis ".\build\windows\installer_arm64.nsi"
 
       - name: Prepare outputs (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           New-Item -ItemType Directory -Path release_assets -Force | Out-Null
-          # Opsiyonel: ham exe'leri de eklemek istersen
-          if (Test-Path build\bin\x64\${{ env.PROJECT_NAME }}.exe) { Copy-Item build\bin\x64\${{ env.PROJECT_NAME }}.exe release_assets\${{ env.PROJECT_NAME }}_windows_amd64.exe -Force }
-          if (Test-Path build\bin\arm64\${{ env.PROJECT_NAME }}.exe) { Copy-Item build\bin\arm64\${{ env.PROJECT_NAME }}.exe release_assets\${{ env.PROJECT_NAME }}_windows_arm64.exe -Force }
-          # NSIS installer’lar
+          # Ham exe'leri de ekle
+          if (Test-Path "${{ env.WIN_EXE_X64 }}")   { Copy-Item "${{ env.WIN_EXE_X64 }}"   "release_assets\${{ env.PROJECT_NAME }}_windows_amd64.exe" -Force }
+          if (Test-Path "${{ env.WIN_EXE_ARM64 }}") { Copy-Item "${{ env.WIN_EXE_ARM64 }}" "release_assets\${{ env.PROJECT_NAME }}_windows_arm64.exe" -Force }
+          # NSIS installer’lar (dist altında)
           Get-ChildItem dist\ -Filter "${{ env.PROJECT_NAME }}_Setup_*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
 
       # ---------- Upload build outputs per OS ----------

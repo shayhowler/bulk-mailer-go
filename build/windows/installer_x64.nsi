@@ -2,7 +2,7 @@
 !define APP_SHORT       "BulkMailerGo"
 !define APP_PUBLISHER   "Burak Aksoy"
 !define APP_VERSION     "1.0.0"
-!define EXE_NAME        "BulkMailerGo.exe"
+!define EXE_NAME        "BulkMailerGo_x64.exe" ; staged unique name
 
 !define INSTALL_DIR_REG "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_SHORT}-x64"
 
@@ -20,8 +20,8 @@ RequestExecutionLevel admin
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  ; x64 payload
-  File /r "build\\bin\\x64\\*.*"
+  ; Include exactly the staged file to avoid "no files found"
+  File "build\\bin\\x64\\${EXE_NAME}"
 
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
 
