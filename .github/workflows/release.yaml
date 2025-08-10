@@ -48,7 +48,7 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 
-      # Ubuntu 24.04: 4.1 kur + 4.0 adına symlink + FUSE
+      # Ubuntu 24.04: WebKitGTK 4.1 kur, 4.0 adına symlink ata, FUSE ekle
       - name: Install Linux GUI deps (Ubuntu symlink + FUSE)
         if: runner.os == 'Linux'
         shell: bash
@@ -57,10 +57,10 @@ jobs:
 
           sudo apt-get update
 
-          # FUSE (AppImages require FUSE)
+          # AppImage için FUSE (libfuse.so.2 sağlar)
           sudo apt-get install -y libfuse2
 
-          # Build & GUI deps
+          # Derleme & GUI bağımlılıkları
           sudo apt-get install -y \
             build-essential \
             pkg-config \
@@ -72,7 +72,7 @@ jobs:
             libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
             libwebkit2gtk-4.1-dev
 
-          # Include symlink: webkitgtk-4.0 -> 4.1
+          # Include symlink: /usr/include/webkitgtk-4.0 -> webkitgtk-4.1
           if [ -d "/usr/include/webkitgtk-4.1" ] && [ ! -e "/usr/include/webkitgtk-4.0" ]; then
             echo "Creating include symlink: /usr/include/webkitgtk-4.0 -> webkitgtk-4.1"
             sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0
@@ -96,6 +96,7 @@ jobs:
       - name: Frontend build
         run: npm run build --prefix frontend
 
+      # Linux'ta PKG_CONFIG_PATH'i garanti altına alarak build
       - name: Wails build (Prod, Linux with PKG_CONFIG_PATH)
         if: runner.os == 'Linux'
         shell: bash
@@ -106,10 +107,12 @@ jobs:
           pkg-config --list-all | grep -E 'webkit2gtk|gtk\+|gio-unix' || true
           wails build
 
+      # Diğer platformlarda normal build
       - name: Wails build (Prod)
         if: runner.os != 'Linux'
         run: wails build
 
+      # Linux: AppImage oluştur (ikon adı uyumu düzeltildi)
       - name: Build AppImage (Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -128,23 +131,30 @@ jobs:
           mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
           mkdir -p "${APPDIR}/usr/share/applications"
 
+          # Binary
           cp "${BIN_PATH}" "${APPDIR}/usr/bin/${{ env.PROJECT_NAME }}"
 
+          # Icon: hem hicolor'a hem de köke appicon.png olarak kopyala
           if [ -f "${ICON_SRC}" ]; then
-            cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/${{ env.PROJECT_NAME }}.png"
+            cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
+            cp "${ICON_SRC}" "${APPDIR}/appicon.png"
+          else
+            echo "Icon not found at ${ICON_SRC}"
           fi
 
+          # .desktop (Icon uzantısız: appicon)
           cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF
           [Desktop Entry]
           Type=Application
           Name=${{ env.APP_DESKTOP_NAME }}
           Exec=${{ env.PROJECT_NAME }}
-          Icon=${{ env.PROJECT_NAME }}
+          Icon=appicon
           Categories=Network;Email;
           Comment=Professional Email Marketing Application
           Terminal=false
           EOF
 
+          # AppRun
           cat > "${APPDIR}/AppRun" <<'EOF'
           #!/bin/sh
           HERE="$(dirname "$(readlink -f "$0")")"
@@ -153,8 +163,10 @@ jobs:
           EOF
           chmod +x "${APPDIR}/AppRun"
 
+          # AppImage oluştur
           ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage"
 
+      # Artifacts arşivle
       - name: Archive artifacts (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -170,6 +182,7 @@ jobs:
         run: |
           powershell -Command "Compress-Archive -Path build\\bin\\* -DestinationPath win_artifacts.zip"
 
+      # Artifacts yükle
       - name: Upload Linux artifacts
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
