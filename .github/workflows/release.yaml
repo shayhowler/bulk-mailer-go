@@ -176,36 +176,45 @@ jobs:
           [ -f "${{ env.PROJECT_NAME }}_macOS.dmg" ] && cp "${{ env.PROJECT_NAME }}_macOS.dmg" release_assets/ || true
 
       # ---------- Windows (x64 + ARM64 + NSIS) ----------
-      - name: Build Windows x64 (Wails)
+      - name: Build Windows x64 (Wails) and stage
         if: runner.os == 'Windows'
         shell: powershell
         run: |
+          $ErrorActionPreference = "Stop"
           $env:GOOS = "windows"
           $env:GOARCH = "amd64"
           wails build
           New-Item -ItemType Directory -Path build\bin\x64 -Force | Out-Null
           Copy-Item build\bin\${{ env.PROJECT_NAME }}.exe build\bin\x64\ -Force
 
-      - name: Build Windows ARM64 (Wails)
+      - name: Setup NSIS
+        if: runner.os == 'Windows'
+        run: choco install nsis -y
+
+      - name: Build NSIS installer (x64)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
+          $ErrorActionPreference = "Stop"
+          if (!(Test-Path dist)) { New-Item -ItemType Directory -Path dist | Out-Null }
+          makensis .\build\windows\installer_x64.nsi
+
+      - name: Build Windows ARM64 (Wails) and stage
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
           $env:GOOS = "windows"
           $env:GOARCH = "arm64"
           wails build
           New-Item -ItemType Directory -Path build\bin\arm64 -Force | Out-Null
           Copy-Item build\bin\${{ env.PROJECT_NAME }}.exe build\bin\arm64\ -Force
 
-      - name: Setup NSIS
-        if: runner.os == 'Windows'
-        run: choco install nsis -y
-
-      - name: Build NSIS installers (x64 + ARM64)
+      - name: Build NSIS installer (ARM64)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          if (!(Test-Path dist)) { New-Item -ItemType Directory -Path dist | Out-Null }
-          makensis .\build\windows\installer_x64.nsi
+          $ErrorActionPreference = "Stop"
           makensis .\build\windows\installer_arm64.nsi
 
       - name: Prepare outputs (Windows)
@@ -213,10 +222,10 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Path release_assets -Force | Out-Null
-          # Ham exe'ler (opsiyonel)
+          # Opsiyonel: ham exe'leri de eklemek istersen
           if (Test-Path build\bin\x64\${{ env.PROJECT_NAME }}.exe) { Copy-Item build\bin\x64\${{ env.PROJECT_NAME }}.exe release_assets\${{ env.PROJECT_NAME }}_windows_amd64.exe -Force }
           if (Test-Path build\bin\arm64\${{ env.PROJECT_NAME }}.exe) { Copy-Item build\bin\arm64\${{ env.PROJECT_NAME }}.exe release_assets\${{ env.PROJECT_NAME }}_windows_arm64.exe -Force }
-          # NSIS çıktılarını da ekle
+          # NSIS installer’lar
           Get-ChildItem dist\ -Filter "${{ env.PROJECT_NAME }}_Setup_*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
 
       # ---------- Upload build outputs per OS ----------

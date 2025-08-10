@@ -1,4 +1,3 @@
-; build/windows/installer_x64.nsi
 !define APP_NAME        "Bulk Mailer Go"
 !define APP_SHORT       "BulkMailerGo"
 !define APP_PUBLISHER   "Burak Aksoy"
@@ -21,6 +20,7 @@ RequestExecutionLevel admin
 
 Section "Install"
   SetOutPath "$INSTDIR"
+  ; x64 payload
   File /r "build\\bin\\x64\\*.*"
 
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
