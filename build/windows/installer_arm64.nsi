@@ -1,3 +1,5 @@
+; NSIS script for ARM64
+
 !define APP_NAME        "Bulk Mailer Go"
 !define APP_SHORT       "BulkMailerGo"
 !define APP_PUBLISHER   "Burak Aksoy"
@@ -14,9 +16,7 @@
 
 !define INSTALL_DIR_REG "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_SHORT}-ARM64"
 
-CreateDirectory "${OUT_DIR}"
 OutFile "${OUT_FILE}"
-
 InstallDir "$PROGRAMFILES64\\${APP_NAME}"
 RequestExecutionLevel admin
 
@@ -39,12 +39,12 @@ Section "Install"
   CreateShortCut "$SMPROGRAMS\\${APP_NAME}\\Uninstall.lnk" "$INSTDIR\\Uninstall.exe"
   CreateShortCut "$DESKTOP\\${APP_NAME}.lnk" "$INSTDIR\\${EXE_NAME}"
 
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "DisplayName" "${APP_NAME} (ARM64)"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "DisplayVersion" "${APP_VERSION}"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "Publisher" "${APP_PUBLISHER}"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "DisplayIcon" "$INSTDIR\\${EXE_NAME}"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "UninstallString" "$INSTDIR\\Uninstall.exe"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "DisplayName"     "${APP_NAME} (ARM64)"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "DisplayVersion"  "${APP_VERSION}"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "Publisher"       "${APP_PUBLISHER}"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "InstallLocation" "$INSTDIR"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "DisplayIcon"     "$INSTDIR\\${EXE_NAME}"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "UninstallString" "$INSTDIR\\Uninstall.exe"
   WriteRegDWORD HKLM "${INSTALL_DIR_REG}" "NoModify" 1
   WriteRegDWORD HKLM "${INSTALL_DIR_REG}" "NoRepair" 1
 SectionEnd
@@ -53,7 +53,10 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk"
   Delete "$SMPROGRAMS\\${APP_NAME}\\Uninstall.lnk"
   RMDir  "$SMPROGRAMS\\${APP_NAME}"
+
   Delete "$DESKTOP\\${APP_NAME}.lnk"
+
   RMDir /r "$INSTDIR"
+
   DeleteRegKey HKLM "${INSTALL_DIR_REG}"
 SectionEnd

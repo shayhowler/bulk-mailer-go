@@ -1,3 +1,5 @@
+; NSIS script for x64
+
 !define APP_NAME        "Bulk Mailer Go"
 !define APP_SHORT       "BulkMailerGo"
 !define APP_PUBLISHER   "Burak Aksoy"
@@ -14,9 +16,7 @@
 
 !define INSTALL_DIR_REG "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_SHORT}-x64"
 
-CreateDirectory "${OUT_DIR}"
 OutFile "${OUT_FILE}"
-
 InstallDir "$PROGRAMFILES64\\${APP_NAME}"
 RequestExecutionLevel admin
 
@@ -29,31 +29,42 @@ RequestExecutionLevel admin
 !insertmacro MUI_LANGUAGE "English"
 
 Section "Install"
+  ; Çalışma zamanı işlemler
   SetOutPath "$INSTDIR"
   File "${SRC_EXE_X64}"
 
+  ; Uninstaller yaz
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
 
+  ; Kısayollar
   CreateDirectory "$SMPROGRAMS\\${APP_NAME}"
   CreateShortCut "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk" "$INSTDIR\\${EXE_NAME}"
   CreateShortCut "$SMPROGRAMS\\${APP_NAME}\\Uninstall.lnk" "$INSTDIR\\Uninstall.exe"
   CreateShortCut "$DESKTOP\\${APP_NAME}.lnk" "$INSTDIR\\${EXE_NAME}"
 
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "DisplayName" "${APP_NAME} (x64)"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "DisplayVersion" "${APP_VERSION}"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "Publisher" "${APP_PUBLISHER}"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "DisplayIcon" "$INSTDIR\\${EXE_NAME}"
-  WriteRegStr HKLM "${INSTALL_DIR_REG}" "UninstallString" "$INSTDIR\\Uninstall.exe"
+  ; Kayıt defteri (Uninstall)
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "DisplayName"     "${APP_NAME} (x64)"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "DisplayVersion"  "${APP_VERSION}"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "Publisher"       "${APP_PUBLISHER}"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "InstallLocation" "$INSTDIR"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "DisplayIcon"     "$INSTDIR\\${EXE_NAME}"
+  WriteRegStr   HKLM "${INSTALL_DIR_REG}" "UninstallString" "$INSTDIR\\Uninstall.exe"
   WriteRegDWORD HKLM "${INSTALL_DIR_REG}" "NoModify" 1
   WriteRegDWORD HKLM "${INSTALL_DIR_REG}" "NoRepair" 1
 SectionEnd
 
 Section "Uninstall"
+  ; Kısayolları sil
   Delete "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk"
   Delete "$SMPROGRAMS\\${APP_NAME}\\Uninstall.lnk"
   RMDir  "$SMPROGRAMS\\${APP_NAME}"
+
+  ; Masaüstü kısayolu
   Delete "$DESKTOP\\${APP_NAME}.lnk"
+
+  ; Uygulama klasörü
   RMDir /r "$INSTDIR"
+
+  ; Uninstall registry
   DeleteRegKey HKLM "${INSTALL_DIR_REG}"
 SectionEnd
