@@ -10,9 +10,6 @@
     <key>CFBundleExecutable</key>
     <string>{{.OutputFilename}}</string>
 
-    <key>CFBundleIdentifier</key>
-    <string>{{.BundleID}}</string>
-
     <key>CFBundleVersion</key>
     <string>{{.Info.ProductVersion}}</string>
 
