@@ -48,17 +48,19 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 
-      # Ubuntu 24.04 (Noble) için: 4.1 kur + 4.0 adına symlink oluştur
-      - name: Install Linux GUI deps (Ubuntu symlink fix)
+      # Ubuntu 24.04: 4.1 kur + 4.0 adına symlink + FUSE
+      - name: Install Linux GUI deps (Ubuntu symlink + FUSE)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
 
-          # Paket listelerini güncelle
           sudo apt-get update
 
-          # Gerekli derleme ve GUI bağımlılıkları
+          # FUSE (AppImages require FUSE)
+          sudo apt-get install -y libfuse2
+
+          # Build & GUI deps
           sudo apt-get install -y \
             build-essential \
             pkg-config \
@@ -70,20 +72,19 @@ jobs:
             libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
             libwebkit2gtk-4.1-dev
 
-          # /usr/include altında 4.0 isimli include klasörü için 4.1'e symlink
+          # Include symlink: webkitgtk-4.0 -> 4.1
           if [ -d "/usr/include/webkitgtk-4.1" ] && [ ! -e "/usr/include/webkitgtk-4.0" ]; then
             echo "Creating include symlink: /usr/include/webkitgtk-4.0 -> webkitgtk-4.1"
             sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0
           fi
 
-          # pkg-config dizinini belirle (x86_64 için yaygın yol)
+          # pkg-config symlink: webkit2gtk-4.0.pc -> webkit2gtk-4.1.pc
           PKGDIR="/usr/lib/x86_64-linux-gnu/pkgconfig"
           if [ ! -d "$PKGDIR" ]; then
             PKGDIR="/usr/lib/pkgconfig"
           fi
           echo "Using pkgconfig dir: $PKGDIR"
 
-          # webkit2gtk-4.0.pc adına 4.1 pc dosyasına symlink
           if [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then
             echo "Creating pkg-config symlink: webkit2gtk-4.0.pc -> webkit2gtk-4.1.pc"
             sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"
@@ -95,7 +96,6 @@ jobs:
       - name: Frontend build
         run: npm run build --prefix frontend
 
-      # Linux'ta PKG_CONFIG_PATH'i garanti altına alarak build
       - name: Wails build (Prod, Linux with PKG_CONFIG_PATH)
         if: runner.os == 'Linux'
         shell: bash
@@ -106,12 +106,10 @@ jobs:
           pkg-config --list-all | grep -E 'webkit2gtk|gtk\+|gio-unix' || true
           wails build
 
-      # Diğer platformlarda normal build
       - name: Wails build (Prod)
         if: runner.os != 'Linux'
         run: wails build
 
-      # Linux: AppImage oluştur
       - name: Build AppImage (Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -157,7 +155,6 @@ jobs:
 
           ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage"
 
-      # Artifacts arşivle
       - name: Archive artifacts (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -173,7 +170,6 @@ jobs:
         run: |
           powershell -Command "Compress-Archive -Path build\\bin\\* -DestinationPath win_artifacts.zip"
 
-      # Artifacts yükle
       - name: Upload Linux artifacts
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
