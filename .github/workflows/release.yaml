@@ -58,10 +58,13 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libfuse2 build-essential pkg-config libgtk-3-dev libglib2.0-dev \
-            libgirepository1.0-dev gir1.2-gtk-3.0 libayatana-appindicator3-dev \
+          sudo apt-get install -y --no-install-recommends \
+            libfuse2 build-essential pkg-config \
+            libgtk-3-dev libglib2.0-dev libgirepository1.0-dev gir1.2-gtk-3.0 \
+            libayatana-appindicator3-dev \
             libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
             libwebkit2gtk-4.1-dev
+          # webkit2gtk-4.1 → 4.0 include ve .pc symlink (amd64)
           if [ -d "/usr/include/webkitgtk-4.1" ] && [ ! -e "/usr/include/webkitgtk-4.0" ]; then
             sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0
           fi
@@ -69,6 +72,7 @@ jobs:
           if [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then
             sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"
           fi
+          sudo rm -rf /var/lib/apt/lists/*
 
       - name: Frontend install (clean)
         run: npm ci --prefix frontend
@@ -144,27 +148,38 @@ jobs:
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}";
-          elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}";
-          else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
-          ICON_PNG="${ICON_PNG}"
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            APP_DIR="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            APP_DIR="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            ls -la build/bin || true
+            exit 1
+          fi
+          ICON_IN="${ICON_PNG}"
           ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
-          if [ ! -f "$ICNS_PATH" ] && [ -f "$ICON_PNG" ]; then
-            W=$(sips -g pixelWidth "$ICON_PNG" | awk '/pixelWidth:/{print $2}')
-            H=$(sips -g pixelHeight "$ICON_PNG" | awk '/pixelHeight:/{print $2}')
-            if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then sips -z 1024 1024 "$ICON_PNG" --out "build/appicon_1024.png" >/dev/null; ICON_PNG="build/appicon_1024.png"; fi
-            ICONSET="appicon.iconset"; rm -rf "$ICONSET"; mkdir -p "$ICONSET"
-            sips -z 16 16 "$ICON_PNG" --out "$ICONSET/icon_16x16.png" >/dev/null
-            sips -z 32 32 "$ICON_PNG" --out "$ICONSET/icon_32x32.png" >/dev/null
-            sips -z 128 128 "$ICON_PNG" --out "$ICONSET/icon_128x128.png" >/dev/null
-            sips -z 256 256 "$ICON_PNG" --out "$ICONSET/icon_256x256.png" >/dev/null
-            sips -z 512 512 "$ICON_PNG" --out "$ICONSET/icon_512x512.png" >/dev/null
-            sips -z 32 32 "$ICON_PNG" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
-            sips -z 64 64 "$ICON_PNG" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
-            sips -z 256 256 "$ICON_PNG" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
-            sips -z 512 512 "$ICON_PNG" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
-            cp "$ICON_PNG" "$ICONSET/icon_512x512@2x.png"
+          if [ ! -f "$ICNS_PATH" ] && [ -f "$ICON_IN" ]; then
+            W=$(sips -g pixelWidth "$ICON_IN" | awk '/pixelWidth:/{print $2}')
+            H=$(sips -g pixelHeight "$ICON_IN" | awk '/pixelHeight:/{print $2}')
+            if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then
+              sips -z 1024 1024 "$ICON_IN" --out "build/appicon_1024.png" >/dev/null
+              ICON_IN="build/appicon_1024.png"
+            fi
+            ICONSET="appicon.iconset"
+            rm -rf "$ICONSET"
+            mkdir -p "$ICONSET"
+            sips -z 16 16 "$ICON_IN" --out "$ICONSET/icon_16x16.png" >/dev/null
+            sips -z 32 32 "$ICON_IN" --out "$ICONSET/icon_32x32.png" >/dev/null
+            sips -z 128 128 "$ICON_IN" --out "$ICONSET/icon_128x128.png" >/dev/null
+            sips -z 256 256 "$ICON_IN" --out "$ICONSET/icon_256x256.png" >/dev/null
+            sips -z 512 512 "$ICON_IN" --out "$ICONSET/icon_512x512.png" >/dev/null
+            sips -z 32 32 "$ICON_IN" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+            sips -z 64 64 "$ICON_IN" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+            sips -z 256 256 "$ICON_IN" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
+            sips -z 512 512 "$ICON_IN" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
+            cp "$ICON_IN" "$ICONSET/icon_512x512@2x.png"
             iconutil -c icns "$ICONSET" -o "$ICNS_PATH"
             rm -rf "$ICONSET"
           fi
@@ -173,6 +188,7 @@ jobs:
             /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
           else
             /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"
+          fi
 
       - name: Import signing certificate (macOS)
         if: runner.os == 'macOS'
@@ -201,9 +217,14 @@ jobs:
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}";
-          elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}";
-          else echo "No .app found under build/bin"; exit 1; fi
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            APP_DIR="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            APP_DIR="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            exit 1
+          fi
           codesign --force --options runtime --deep -s "$SIGN_IDENTITY_APP" "$APP_DIR"
           codesign --verify --deep --strict "$APP_DIR"
 
@@ -215,11 +236,20 @@ jobs:
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
           OUT_DMG="${PROJECT_NAME}_macOS.dmg"
-          if [ -d "build/bin/${APP_NAME}" ]; then SRC_APP="build/bin/${APP_NAME}";
-          elif [ -d "build/bin/${ALT_NAME}" ]; then SRC_APP="build/bin/${ALT_NAME}";
-          else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
-          DMG_DIR="dmgroot"; rm -rf "${DMG_DIR}"; mkdir -p "${DMG_DIR}"
-          cp -R "${SRC_APP}" "${DMG_DIR}/"; ln -s /Applications "${DMG_DIR}/Applications"
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            SRC_APP="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            SRC_APP="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            ls -la build/bin || true
+            exit 1
+          fi
+          DMG_DIR="dmgroot"
+          rm -rf "${DMG_DIR}"
+          mkdir -p "${DMG_DIR}"
+          cp -R "${SRC_APP}" "${DMG_DIR}/"
+          ln -s /Applications "${DMG_DIR}/Applications"
           hdiutil create -volname "${APP_DESKTOP_NAME}" -srcfolder "${DMG_DIR}" -ov -format UDZO "${OUT_DMG}"
           rm -rf "${DMG_DIR}"
 
@@ -345,7 +375,7 @@ jobs:
           ENV DEBIAN_FRONTEND=noninteractive
 
           # Sistem bağımlılıkları
-          RUN apt-get update && apt-get install -y \
+          RUN apt-get update && apt-get install -y --no-install-recommends \
               curl wget git xz-utils ca-certificates build-essential pkg-config \
               libgtk-3-dev libglib2.0-dev libgirepository1.0-dev gir1.2-gtk-3.0 \
               libayatana-appindicator3-dev \
@@ -376,8 +406,13 @@ jobs:
 
           # Wails CLI (PATH'e düşecek)
           RUN go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
-          # Alternatif garanti yol (isterseniz yukarıyı yorumlayıp bunu açın):
+          # Alternatif:
           # RUN GOBIN=/usr/local/bin go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+
+          # webkit2gtk-4.1 → 4.0 symlink (ARM64)
+          RUN if [ -d "/usr/include/webkitgtk-4.1" ] && [ ! -e "/usr/include/webkitgtk-4.0" ]; then ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0; fi
+          RUN PKGDIR="/usr/lib/aarch64-linux-gnu/pkgconfig"; \
+              if [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"; fi
 
           WORKDIR /workspace
           EOF
