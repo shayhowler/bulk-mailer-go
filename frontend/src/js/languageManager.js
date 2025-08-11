@@ -1,34 +1,46 @@
 // Language management system
-import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill';
-
-// Initialize flag emoji polyfill
-polyfillCountryFlagEmojis();
-
 let currentLanguage = 'en';
 
 // Language options configuration
-const LANG_OPTIONS = {
-    'tr': { code: 'TR', name: 'Türkçe' },
-    'en': { code: 'US', name: 'English' }
+export const LANG_OPTIONS = {
+    'tr': { 
+        code: 'TR', 
+        name: 'Türkçe',
+        templateName: 'Türkçe Şablonlar',
+        optionName: 'Türkçe'
+    },
+    'en': { 
+        code: 'US', 
+        name: 'English',
+        templateName: 'English Templates',
+        optionName: 'English'
+    }
 };
 
-// Get country flag using the polyfill - EXPORTED for global use
-export function getCountryFlag(countryCode) {
-    if (!countryCode || countryCode.length !== 2) {
-        return '🌍'; // World emoji as fallback
+// Get language options for current language
+export function getLanguageOptionsForCurrentLang() {
+    const currentLang = getCurrentLanguage();
+    if (currentLang === 'tr') {
+        return {
+            tr: 'Türkçe',
+            en: 'İngilizce',
+            all: 'Tüm Diller',
+            trTemplates: 'Türkçe Şablonlar',
+            enTemplates: 'İngilizce Şablonlar',
+            allTemplates: 'Tüm Şablonlar'
+        };
+    } else {
+        return {
+            tr: 'Turkish',
+            en: 'English',
+            all: 'All Languages',
+            trTemplates: 'Turkish Templates',
+            enTemplates: 'English Templates',
+            allTemplates: 'All Templates'
+        };
     }
-    
-    // Convert country code to flag emoji using regional indicator symbols
-    const codePoints = countryCode
-        .toUpperCase()
-        .split('')
-        .map(char => 0x1F1E6 + char.charCodeAt(0) - 65);
-    
-    return String.fromCodePoint(...codePoints);
 }
 
-// Make it globally available for other modules
-window.getCountryFlag = getCountryFlag;
 
 // Translation data
 const translations = {
@@ -155,7 +167,7 @@ const translations = {
         'templates-title': '📜 E-posta Şablonları',
         'template-name-header': 'Ad',
         'template-subject-header': 'Konu',
-        'template-content-header': 'İçerik Önizlemesi',
+        'template-content-header': 'İçerik',
         'template-html-header': 'HTML',
         'template-language-header': 'Dil',
         'template-actions-header': 'İşlemler',
@@ -182,6 +194,12 @@ const translations = {
         'template-language-all': 'Tüm Diller',
         'template-language-tr': 'Türkçe',
         'template-language-en': 'İngilizce',
+        'templates-filter-all': 'Tüm Diller',
+        'templates-filter-tr': 'Türkçe',
+        'templates-filter-en': 'İngilizce',
+        'template-filter-all': 'Tüm Diller',
+        'template-filter-tr': 'Türkçe',
+        'template-filter-en': 'İngilizce',
         
         // Send
         'send-title': '🚀 E-posta Gönder',
@@ -314,6 +332,7 @@ const translations = {
         'mapping-title': '🔗 Şablon Alanlarını Eşle',
         'save-mapping-btn': '💾 Kaydet',
         'cancel-mapping-btn': '❌ İptal',
+        'mapping-select-field': 'Alan Seç',
         'confirmation-title': '⚠️ Onay',
         'yes-btn': '✅ Evet',
         'no-btn': '❌ Hayır',
@@ -357,8 +376,8 @@ const translations = {
         'preview-subject': 'Konu:',
         
         // Language options
-        'tr-option': '🇹🇷 Türkçe',
-'en-option': '🇺🇸 English',
+        'tr-option': 'Türkçe',
+'en-option': 'English',
         
         // Attachments/messages
         'files-added-drag': '{count} dosya sürükleyerek eklendi',
@@ -534,8 +553,7 @@ const translations = {
         'templates-title': '📜 Email Templates',
         'template-name-header': 'Name',
         'template-subject-header': 'Subject',
-        'template-content-header': 'Content Preview',
-        'template-html-header': 'HTML',
+        'template-content-header': 'Content',
         'template-language-header': 'Language',
         'template-actions-header': 'Actions',
         'add-template-btn': '➕ Add New Template',
@@ -561,6 +579,12 @@ const translations = {
         'template-language-all': 'All Languages',
         'template-language-tr': 'Turkish',
         'template-language-en': 'English',
+        'templates-filter-all': 'All Languages',
+        'templates-filter-tr': 'Turkish',
+        'templates-filter-en': 'English',
+        'template-filter-all': 'All Languages',
+        'template-filter-tr': 'Turkish',
+        'template-filter-en': 'English',
         
         // Send
         'send-title': '🚀 Send Email',
@@ -693,6 +717,7 @@ const translations = {
         'mapping-title': '🔗 Map Template Fields',
         'save-mapping-btn': '💾 Save',
         'cancel-mapping-btn': '❌ Cancel',
+        'mapping-select-field': 'Select Field',
         'confirmation-title': '⚠️ Confirmation',
         'yes-btn': '✅ Yes',
         'no-btn': '❌ No',
@@ -736,8 +761,8 @@ const translations = {
         'preview-subject': 'Subject:',
         
         // Language options
-        'tr-option': '🇹🇷 Türkçe',
-'en-option': '🇺🇸 English',
+        'tr-option': 'Türkçe',
+'en-option': 'English',
         
         // Attachments/messages
         'files-added-drag': '{count} files added by dragging',
@@ -810,6 +835,22 @@ export function changeLanguage(lang) {
         localStorage.setItem('language', lang);
         updateAllTexts();
         updateThemeButtons();
+        
+        // Update language selectors with new language names
+        if (window.updateLanguageSelectors) {
+            window.updateLanguageSelectors();
+        }
+        
+        // Update settings language dropdown
+        if (window.populateLanguageDropdown) {
+            window.populateLanguageDropdown();
+            // Restore the selected value
+            const dl = document.getElementById('settings-default-language');
+            if (dl && window.state && window.state.settings) {
+                dl.value = window.state.settings.defaultLanguage || 'en';
+            }
+        }
+        
         // Re-init EditorJS instances so placeholders reflect the new language
         if (window.reinitEditorsForLanguage) {
             window.reinitEditorsForLanguage();
@@ -1002,23 +1043,15 @@ export function initLanguage() {
     const savedLang = localStorage.getItem('language') || 'en';  // Default to English for global app
     currentLanguage = savedLang;
     
-    // Set language selector
+    // Set language selector with dynamic language names
     const langSelect = document.getElementById('language-select');
     if (langSelect) {
-        // Clear any existing options
-        langSelect.innerHTML = '';
-        
-        // Add an option for each language
-        Object.entries(LANG_OPTIONS).forEach(([code, data]) => {
-            const option = document.createElement('option');
-            option.value = code;
-            const flag = getCountryFlag(data.code);
-            option.textContent = `${flag} ${data.name}`;
-            if (code === currentLanguage) {
-                option.selected = true;
-            }
-            langSelect.appendChild(option);
-        });
+        const langOptions = getLanguageOptionsForCurrentLang();
+        langSelect.innerHTML = `
+            <option value="tr">${langOptions.tr}</option>
+            <option value="en">${langOptions.en}</option>
+        `;
+        langSelect.value = currentLanguage;
     }
     
     // Update all texts immediately

@@ -1,3 +1,11 @@
+# =========================
+# File: .github/workflows/release.yml
+# Changes in this version:
+# - Adds Linux ARM64 (aarch64) AppImage alongside x86_64
+# - Publishes only NSIS installers for Windows (no raw .exe)
+# - Adds root-level templates/default_templates.json to Release assets
+# - Keeps your existing hidden user data locations intact (no change to app behavior)
+# =========================
 name: release
 
 on:
@@ -75,7 +83,7 @@ jobs:
       - name: Frontend build
         run: npm run build --prefix frontend
 
-      - name: Wails build (Linux)
+      - name: Wails build (Linux x86_64)
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -83,7 +91,7 @@ jobs:
           export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
           wails build
 
-      - name: Build AppImage (Linux)
+      - name: Build AppImage (Linux x86_64)
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -120,11 +128,58 @@ jobs:
           chmod +x "${APPDIR}/AppRun"
           ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage"
 
+      - name: Wails build (Linux ARM64)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GOOS=linux
+          export GOARCH=arm64
+          wails build
+          mkdir -p build/bin/arm64
+          cp "build/bin/${{ env.PROJECT_NAME }}" "build/bin/arm64/${{ env.PROJECT_NAME }}"
+
+      - name: Build AppImage (Linux ARM64)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPDIR_ARM="${{ env.PROJECT_NAME }}-arm64.AppDir"
+          BIN_PATH_ARM="build/bin/arm64/${{ env.PROJECT_NAME }}"
+          ICON_SRC="${{ env.ICON_PNG }}"
+          DESKTOP_FILE="${{ env.PROJECT_NAME }}.desktop"
+          rm -rf "${APPDIR_ARM}"
+          mkdir -p "${APPDIR_ARM}/usr/bin" "${APPDIR_ARM}/usr/share/icons/hicolor/256x256/apps" "${APPDIR_ARM}/usr/share/applications"
+          cp "${BIN_PATH_ARM}" "${APPDIR_ARM}/usr/bin/${{ env.PROJECT_NAME }}"
+          if [ -f "${ICON_SRC}" ]; then
+            cp "${ICON_SRC}" "${APPDIR_ARM}/usr/share/icons/hicolor/256x256/apps/appicon.png"
+            cp "${ICON_SRC}" "${APPDIR_ARM}/appicon.png"
+          fi
+          cat > "${APPDIR_ARM}/${DESKTOP_FILE}" <<EOF
+          [Desktop Entry]
+          Type=Application
+          Name=${{ env.APP_DESKTOP_NAME }}
+          Exec=${{ env.PROJECT_NAME }}
+          Icon=appicon
+          Categories=Network;Email;
+          Comment=Professional Email Marketing Application
+          Terminal=false
+          EOF
+          cat > "${APPDIR_ARM}/AppRun" <<'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          export APPDIR="$HERE"
+          exec "$HERE/usr/bin/BulkMailerGo" "$@"
+          EOF
+          chmod +x "${APPDIR_ARM}/AppRun"
+          ./appimagetool "${APPDIR_ARM}" "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage"
+
       - name: Prepare outputs (Linux)
         if: runner.os == 'Linux'
         run: |
           mkdir -p release_assets
           [ -f "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage" ] && cp "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage" release_assets/ || true
+          [ -f "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage" ] && cp "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage" release_assets/ || true
 
       # ---------- macOS ----------
       - name: Wails build (macOS)
@@ -146,17 +201,15 @@ jobs:
             echo "No .app found under build/bin"; ls -la build/bin || true; exit 1
           fi
 
-          ICON_PNG="${ICON_PNG}"  # build/appicon.png
+          ICON_PNG="${ICON_PNG}"
           ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
 
-          # Skip if icns already exists
           if [ -f "$ICNS_PATH" ]; then
             echo "Existing .icns found at $ICNS_PATH. Skipping conversion."
           elif [ ! -f "$ICON_PNG" ]; then
             echo "Icon PNG not found at $ICON_PNG. Skipping icon conversion."
           else
-            # Ensure 1024x1024 source
             W=$(sips -g pixelWidth "$ICON_PNG" | awk '/pixelWidth:/{print $2}')
             H=$(sips -g pixelHeight "$ICON_PNG" | awk '/pixelHeight:/{print $2}')
             echo "Source PNG size: ${W}x${H}"
@@ -171,32 +224,23 @@ jobs:
 
             ICONSET="appicon.iconset"
             rm -rf "$ICONSET"; mkdir -p "$ICONSET"
-
-            # 1x sizes
             sips -z 16 16     "$ICON_PNG" --out "$ICONSET/icon_16x16.png" >/dev/null
             sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_32x32.png" >/dev/null
             sips -z 128 128   "$ICON_PNG" --out "$ICONSET/icon_128x128.png" >/dev/null
             sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_256x256.png" >/dev/null
             sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_512x512.png" >/dev/null
-
-            # 2x sizes
             sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
             sips -z 64 64     "$ICON_PNG" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
             sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
             sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
             cp "$ICON_PNG" "$ICONSET/icon_512x512@2x.png"
-
-            # Validate iconset
             for f in icon_16x16.png icon_16x16@2x.png icon_32x32.png icon_32x32@2x.png icon_128x128.png icon_128x128@2x.png icon_256x256.png icon_256x256@2x.png icon_512x512.png icon_512x512@2x.png; do
               [ -f "$ICONSET/$f" ] || { echo "Missing icon size: $f"; ls -la "$ICONSET"; exit 1; }
             done
-
-            # Convert to .icns
             iconutil -c icns "$ICONSET" -o "$ICNS_PATH"
             rm -rf "$ICONSET"
           fi
 
-          # Ensure Info.plist points to icon
           PLIST="${APP_DIR}/Contents/Info.plist"
           if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then
             /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
@@ -219,7 +263,6 @@ jobs:
           security default-keychain -s "$KEYCHAIN"
           security unlock-keychain -p "" "$KEYCHAIN"
           security set-keychain-settings -lut 21600 "$KEYCHAIN"
-
           echo "$P12_B64" | base64 --decode > app.p12
           security import app.p12 -k "$KEYCHAIN" -P "$P12_PASS" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN"
@@ -241,7 +284,6 @@ jobs:
           else
             echo "No .app found under build/bin"; exit 1
           fi
-
           codesign --force --options runtime --deep -s "$SIGN_IDENTITY_APP" "$APP_DIR"
           codesign --verify --deep --strict "$APP_DIR"
 
@@ -253,7 +295,6 @@ jobs:
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
           OUT_DMG="${PROJECT_NAME}_macOS.dmg"
-
           if [ -d "build/bin/${APP_NAME}" ]; then
             SRC_APP="build/bin/${APP_NAME}"
           elif [ -d "build/bin/${ALT_NAME}" ]; then
@@ -263,7 +304,6 @@ jobs:
             ls -la build/bin || true
             exit 1
           fi
-
           DMG_DIR="dmgroot"
           rm -rf "${DMG_DIR}"
           mkdir -p "${DMG_DIR}"
@@ -345,8 +385,7 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Path release_assets -Force | Out-Null
-          if (Test-Path "${{ env.WIN_EXE_X64 }}")   { Copy-Item "${{ env.WIN_EXE_X64 }}"   "release_assets\${{ env.PROJECT_NAME }}_windows_amd64.exe" -Force }
-          if (Test-Path "${{ env.WIN_EXE_ARM64 }}") { Copy-Item "${{ env.WIN_EXE_ARM64 }}" "release_assets\${{ env.PROJECT_NAME }}_windows_arm64.exe" -Force }
+          # Only NSIS installers from dist
           Get-ChildItem "build\windows\dist" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
 
       # ---------- Upload artifacts ----------
@@ -400,19 +439,23 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release_assets
-
-          # Unzip all artifact zips
           find artifacts -type f -name "*.zip" -print0 | while IFS= read -r -d '' z; do
             dest="$(dirname "$z")/unzipped"
             mkdir -p "$dest"
             unzip -o "$z" -d "$dest" >/dev/null
           done
-
-          # Collect .AppImage, .dmg, .exe from any depth
           find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 | \
             xargs -0 -I {} cp -f {} release_assets/
-
           echo "Final payload:"
+          ls -la release_assets
+
+      - name: Include default templates.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release_assets
+          #path: root-level templates/default_templates.json
+          if [ -f templates/default_templates.json ]; then cp templates/default_templates.json release_assets/; fi
           ls -la release_assets
 
       - name: Create GitHub Release

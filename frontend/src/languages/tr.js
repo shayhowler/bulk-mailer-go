@@ -1,6 +1,7 @@
 export const tr = {
     // Navigation
     tabs: {
+        settings: "⚙️ Ayarlar",
         accounts: "📧 Hesaplar",
         contacts: "👥 Kişiler", 
         templates: "📜 Şablonlar",
@@ -86,7 +87,13 @@ export const tr = {
         save: "💾 Kaydet",
         delete: "🗑️ Sil",
         cancel: "❌ İptal",
-        continue: "▶ Devam"
+        continue: "▶ Devam",
+        filter: {
+            all: "Tüm Şablonlar",
+            tr: "Türkçe Şablonlar",
+            en: "İngilizce Şablonlar",
+            label: "Dil Filtresi:"
+        }
     },
     
     // Send
@@ -152,6 +159,10 @@ export const tr = {
     language: {
         name: "Türkçe",
         shortName: "TR",
+        options: {
+            tr: "Türkçe",
+            en: "İngilizce"
+        },
         templates: {
             all: "Tüm Şablonlar",
             filtered: "Türkçe Şablonlar"
@@ -167,6 +178,27 @@ export const tr = {
         success: "Başarılı",
         info: "Bilgi",
         warning: "Uyarı"
+    },
+    
+    // Settings
+    settings: {
+        title: "⚙️ Ayarlar",
+        country: "Ülke",
+        timezone: "Saat Dilimi",
+        dateformat: "Tarih Formatı",
+        defaultLanguage: "Varsayılan Dil",
+        logsLanguage: "Log Dili",
+        save: "💾 Ayarları Kaydet",
+        reload: "🔄 Ayarları Yenile",
+        dataManagement: "Veri Yönetimi",
+        dataLocation: "Veri Konumu",
+        dataSize: "Veri Boyutu",
+        refreshData: "🔄 Veri Bilgisini Yenile",
+        exportData: "📤 Veriyi Dışa Aktar",
+        importData: "📥 Veriyi İçe Aktar",
+        importTemplates: "📜 Şablonları İçe Aktar",
+        importAccounts: "📧 Hesapları İçe Aktar",
+        uninstallApp: "🗑️ Uygulamayı Kaldır"
     },
     
     // Providers

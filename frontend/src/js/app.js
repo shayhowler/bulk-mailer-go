@@ -36,9 +36,8 @@ import {
     initializeLogsButtons
 } from './logManagement.js';
 import { triggerFileDialog, handleFileSelect, clearAllAttachments } from './attachmentManagement.js';
-import { initLanguage, changeLanguageGlobal, getText, updateAllTexts, getCurrentLanguage } from './languageManager.js';
-import { loadSettings, saveSettings, reloadSettings } from './settings.js';
-import { openSendingModal, updateSendingProgress, completeSending, sendingState } from './progress-modal.js';
+import { initLanguage, changeLanguageGlobal, getText, getCurrentLanguage, LANG_OPTIONS, getLanguageOptionsForCurrentLang } from './languageManager.js';
+import { loadSettings, saveSettings, reloadSettings, populateLanguageDropdown } from './settings.js';
 
 // Utils
 window.switchTab = switchTab;
@@ -126,6 +125,7 @@ window.filterLogContent = filterLogContent;
 // Settings
 window.saveSettings = saveSettings;
 window.reloadSettings = reloadSettings;
+window.populateLanguageDropdown = populateLanguageDropdown;
 
 // Progress Modal Management (from progress-modal.js)
 // Note: closeSendingModal, pauseSending, resumeSending, cancelSending, stopSending
@@ -225,10 +225,16 @@ function filterTemplatesUI() {
         }
         contentPreview = contentPreview.substring(0, 100);
         
-        // Language display
+        // Language display with proper names
+        const langOptions = getLanguageOptionsForCurrentLang();
         let languageDisplay = '';
-        if (template.language === 'tr') languageDisplay = '🇹🇷';
-        else if (template.language === 'en') languageDisplay = '🇺🇸';
+        if (template.language === 'tr') {
+            languageDisplay = langOptions.tr;
+        } else if (template.language === 'en') {
+            languageDisplay = langOptions.en;
+        } else {
+            languageDisplay = 'Unknown';
+        }
         
         tr.innerHTML = `
             <td>${escapeHtml(template.name)}</td>
@@ -244,12 +250,73 @@ function filterTemplatesUI() {
     state.templates = backup;
 }
 
+// Update language selectors with proper names
+function updateLanguageSelectors() {
+    const currentLang = getCurrentLanguage();
+    const langOptions = getLanguageOptionsForCurrentLang();
+    
+    // Update header language selector
+    const headerLangSelect = document.getElementById('language-select');
+    if (headerLangSelect) {
+        headerLangSelect.innerHTML = `
+            <option value="tr">${langOptions.tr}</option>
+            <option value="en">${langOptions.en}</option>
+        `;
+        headerLangSelect.value = currentLang;
+    }
+    
+    // Update settings language selector
+    const settingsLangSelect = document.getElementById('settings-default-language');
+    if (settingsLangSelect) {
+        settingsLangSelect.innerHTML = `
+            <option value="tr">${langOptions.tr}</option>
+            <option value="en">${langOptions.en}</option>
+        `;
+        settingsLangSelect.value = currentLang;
+    }
+    
+    // Update template language selector
+    const templateLangSelect = document.getElementById('template-language');
+    if (templateLangSelect) {
+        templateLangSelect.innerHTML = `
+            <option value="tr">${langOptions.tr}</option>
+            <option value="en">${langOptions.en}</option>
+        `;
+        templateLangSelect.value = currentLang;
+    }
+    
+    // Update template filters
+    const templatesFilter = document.getElementById('templates-filter');
+    if (templatesFilter) {
+        templatesFilter.innerHTML = `
+            <option value="all">${langOptions.allTemplates}</option>
+            <option value="tr">${langOptions.trTemplates}</option>
+            <option value="en">${langOptions.enTemplates}</option>
+        `;
+    }
+    
+    const sendTemplateFilter = document.getElementById('template-filter');
+    if (sendTemplateFilter) {
+        sendTemplateFilter.innerHTML = `
+            <option value="all">${langOptions.allTemplates}</option>
+            <option value="tr">${langOptions.trTemplates}</option>
+            <option value="en">${langOptions.enTemplates}</option>
+        `;
+    }
+}
+
+// Make function globally available
+window.updateLanguageSelectors = updateLanguageSelectors;
+
 document.addEventListener('DOMContentLoaded', () => {
     logToSystem('Application starting...', 'info');
     console.log('DOM fully loaded, starting initialization...');
 
     // Initialize language system first
     initLanguage();
+
+    // Update language selectors with proper names
+    updateLanguageSelectors();
 
     // Load settings
     loadSettings();

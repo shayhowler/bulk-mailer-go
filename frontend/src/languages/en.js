@@ -1,6 +1,7 @@
 export const en = {
     // Navigation
     tabs: {
+        settings: "⚙️ Settings",
         accounts: "📧 Accounts",
         contacts: "👥 Contacts", 
         templates: "📜 Templates",
@@ -86,7 +87,13 @@ export const en = {
         save: "💾 Save",
         delete: "🗑️ Delete",
         cancel: "❌ Cancel",
-        continue: "▶ Continue"
+        continue: "▶ Continue",
+        filter: {
+            all: "All Templates",
+            tr: "Turkish Templates",
+            en: "English Templates",
+            label: "Language Filter:"
+        }
     },
     
     // Send
@@ -151,6 +158,10 @@ export const en = {
     language: {
         name: "English",
         shortName: "EN",
+        options: {
+            tr: "Turkish",
+            en: "English"
+        },
         templates: {
             all: "All Templates",
             filtered: "English Templates"
@@ -166,6 +177,27 @@ export const en = {
         success: "Success",
         info: "Info",
         warning: "Warning"
+    },
+    
+    // Settings
+    settings: {
+        title: "⚙️ Settings",
+        country: "Country",
+        timezone: "Timezone",
+        dateformat: "Date Format",
+        defaultLanguage: "Default Language",
+        logsLanguage: "Logs Language",
+        save: "💾 Save Settings",
+        reload: "🔄 Reload Settings",
+        dataManagement: "Data Management",
+        dataLocation: "Data Location",
+        dataSize: "Data Size",
+        refreshData: "🔄 Refresh Data Info",
+        exportData: "📤 Export Data",
+        importData: "📥 Import Data",
+        importTemplates: "📜 Import Templates",
+        importAccounts: "📧 Import Accounts",
+        uninstallApp: "🗑️ Uninstall App"
     },
     
     // Providers

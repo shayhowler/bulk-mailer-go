@@ -91,8 +91,6 @@ export function SaveTemplates():Promise<void>;
 
 export function SelectDirectory(arg1:string):Promise<string>;
 
-export function SelectFile(arg1:string):Promise<string>;
-
 export function SelectSourceFile(arg1:string):Promise<string>;
 
 export function SendEmails(arg1:string,arg2:string,arg3:string,arg4:string,arg5:Array<string>):Promise<void>;

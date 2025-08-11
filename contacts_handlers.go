@@ -7,16 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/xuri/excelize/v2"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/xuri/excelize/v2"
 )
-
-// SelectFile opens a file dialog
-func (a *App) SelectFile(filters string) string {
-	// This would typically use runtime.OpenFileDialog
-	// For now, return empty string
-	return ""
-}
 
 // LoadTablesOrFields loads tables from SQLite or fields from CSV/Excel
 // For SQLite: if sourceType is "SQLite" and tableOrPath is empty string, returns table names
@@ -169,18 +162,18 @@ func (a *App) loadExcelFields(sheetName string) []string {
 // Parameters: filePath, sourceType, tableOrSheet, emailColumn
 func (a *App) LoadContacts(filePath string, sourceType string, tableOrSheet string, emailColumn string) map[string]interface{} {
 	a.log(fmt.Sprintf("Loading contacts: file=%s, type=%s, table=%s, email=%s", filePath, sourceType, tableOrSheet, emailColumn))
-	
+
 	// Update the file path if provided
 	if filePath != "" {
 		a.dbFile = filePath
 	}
-	
+
 	// Reset all contact-related state
 	a.emailColumn = emailColumn
 	a.contacts = []Contact{}
 	a.filtered = []Contact{}
 	a.invalid = []Contact{}
-	a.selectedRows = []int{}  // Reset selected rows when loading new contacts
+	a.selectedRows = []int{} // Reset selected rows when loading new contacts
 
 	var result ImportResult
 	switch sourceType {
@@ -199,12 +192,12 @@ func (a *App) LoadContacts(filePath string, sourceType string, tableOrSheet stri
 
 	// Convert to the format expected by frontend
 	return map[string]interface{}{
-		"success":  result.Success,
-		"total":    result.Total,
-		"valid":    a.filtered,  // Return actual valid contacts
-		"invalid":  a.invalid,   // Return actual invalid contacts
-		"fields":   result.Fields,
-		"message":  result.Message,
+		"success": result.Success,
+		"total":   result.Total,
+		"valid":   a.filtered, // Return actual valid contacts
+		"invalid": a.invalid,  // Return actual invalid contacts
+		"fields":  result.Fields,
+		"message": result.Message,
 	}
 }
 
@@ -243,29 +236,29 @@ func (a *App) loadContactsFromSQLite(table string, emailColumn string) ImportRes
 
 	// Simple email validation: must have @ with text before and after, not empty
 	// This accepts emails like k.dogan@kronospan.com.tr
-	
+
 	for rows.Next() {
 		values := make([]interface{}, len(cols))
 		valuePtrs := make([]interface{}, len(cols))
 		for i := range values {
 			valuePtrs[i] = &values[i]
 		}
-		
+
 		if err := rows.Scan(valuePtrs...); err != nil {
 			continue
 		}
-		
+
 		contact := Contact{
 			Fields: make(map[string]string),
 			Data:   make(map[string]interface{}),
 		}
-		
+
 		for i, col := range cols {
 			if values[i] != nil {
 				strVal := fmt.Sprintf("%v", values[i])
 				contact.Fields[col] = strVal
 				contact.Data[col] = values[i]
-				
+
 				if col == emailColumn {
 					contact.Email = strings.TrimSpace(strVal)
 					// Simple validation: not empty and contains @ with text on both sides
@@ -280,7 +273,7 @@ func (a *App) loadContactsFromSQLite(table string, emailColumn string) ImportRes
 				}
 			}
 		}
-		
+
 		a.contacts = append(a.contacts, contact)
 		if contact.Valid {
 			a.filtered = append(a.filtered, contact)
@@ -298,7 +291,7 @@ func (a *App) loadContactsFromSQLite(table string, emailColumn string) ImportRes
 		Message:  fmt.Sprintf("Loaded %d contacts (%d valid, %d invalid)", len(a.contacts), len(a.filtered), len(a.invalid)),
 		Contacts: a.filtered,
 	}
-	
+
 	safeEventsEmit(a.ctx, "contactsLoaded", result)
 	return result
 }
@@ -331,7 +324,7 @@ func (a *App) loadContactsFromCSV(emailColumn string) ImportResult {
 
 	headers := records[0]
 	a.fields = headers
-	
+
 	emailColIndex := -1
 	for i, h := range headers {
 		if h == emailColumn {
@@ -346,12 +339,12 @@ func (a *App) loadContactsFromCSV(emailColumn string) ImportResult {
 			Fields: make(map[string]string),
 			Data:   make(map[string]interface{}),
 		}
-		
+
 		for j, value := range record {
 			if j < len(headers) {
 				contact.Fields[headers[j]] = value
 				contact.Data[headers[j]] = value
-				
+
 				if j == emailColIndex {
 					contact.Email = strings.TrimSpace(value)
 					// Simple validation: not empty and contains @ with text on both sides
@@ -366,7 +359,7 @@ func (a *App) loadContactsFromCSV(emailColumn string) ImportResult {
 				}
 			}
 		}
-		
+
 		a.contacts = append(a.contacts, contact)
 		if contact.Valid {
 			a.filtered = append(a.filtered, contact)
@@ -384,7 +377,7 @@ func (a *App) loadContactsFromCSV(emailColumn string) ImportResult {
 		Message:  fmt.Sprintf("Loaded %d contacts (%d valid, %d invalid)", len(a.contacts), len(a.filtered), len(a.invalid)),
 		Contacts: a.filtered,
 	}
-	
+
 	safeEventsEmit(a.ctx, "contactsLoaded", result)
 	return result
 }
@@ -416,7 +409,7 @@ func (a *App) loadContactsFromExcel(sheetName string, emailColumn string) Import
 
 	headers := rows[0]
 	a.fields = headers
-	
+
 	emailColIndex := -1
 	for i, h := range headers {
 		if h == emailColumn {
@@ -431,12 +424,12 @@ func (a *App) loadContactsFromExcel(sheetName string, emailColumn string) Import
 			Fields: make(map[string]string),
 			Data:   make(map[string]interface{}),
 		}
-		
+
 		for j, value := range row {
 			if j < len(headers) {
 				contact.Fields[headers[j]] = value
 				contact.Data[headers[j]] = value
-				
+
 				if j == emailColIndex {
 					contact.Email = strings.TrimSpace(value)
 					// Simple validation: not empty and contains @ with text on both sides
@@ -451,7 +444,7 @@ func (a *App) loadContactsFromExcel(sheetName string, emailColumn string) Import
 				}
 			}
 		}
-		
+
 		a.contacts = append(a.contacts, contact)
 		if contact.Valid {
 			a.filtered = append(a.filtered, contact)
@@ -469,7 +462,7 @@ func (a *App) loadContactsFromExcel(sheetName string, emailColumn string) Import
 		Message:  fmt.Sprintf("Loaded %d contacts (%d valid, %d invalid)", len(a.contacts), len(a.filtered), len(a.invalid)),
 		Contacts: a.filtered,
 	}
-	
+
 	safeEventsEmit(a.ctx, "contactsLoaded", result)
 	return result
 }
@@ -484,7 +477,7 @@ func (a *App) FilterContacts(searchText string) {
 
 	a.filtered = []Contact{}
 	searchLower := strings.ToLower(searchText)
-	
+
 	for _, contact := range a.contacts {
 		if contact.Valid {
 			// Search in all fields

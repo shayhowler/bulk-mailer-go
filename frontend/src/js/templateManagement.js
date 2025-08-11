@@ -6,7 +6,7 @@ import {
     escapeHtml
 } from './utils.js';
 import { state } from './state.js';
-import { getCurrentLanguage } from './languageManager.js';
+import { getCurrentLanguage, LANG_OPTIONS, getLanguageOptionsForCurrentLang } from './languageManager.js';
 
 export function updateTemplatesTable() {
     const tbody = document.querySelector('#templates-table tbody');
@@ -38,9 +38,15 @@ export function updateTemplatesTable() {
         }
         
         // Language display
+        const langOptions = getLanguageOptionsForCurrentLang();
         let languageDisplay = '';
-        if (template.language === 'tr') languageDisplay = window.getCountryFlag ? window.getCountryFlag('TR') : 'TR';
-        else if (template.language === 'en') languageDisplay = window.getCountryFlag ? window.getCountryFlag('US') : 'US';
+        if (template.language === 'tr') {
+            languageDisplay = langOptions.tr;
+        } else if (template.language === 'en') {
+            languageDisplay = langOptions.en;
+        } else {
+            languageDisplay = 'Unknown';
+        }
         
         // No HTML column - only Name, Subject, Content Preview, Language, Actions
         tr.innerHTML = `
@@ -67,9 +73,13 @@ export function updateTemplateSelect(filterLanguage = 'all') {
             if (!templateLang || templateLang !== filterLanguage) return;
         }
         
+        const langOptions = getLanguageOptionsForCurrentLang();
         let languagePrefix = '';
-        if (templateLang === 'tr') languagePrefix = (window.getCountryFlag ? window.getCountryFlag('TR') : 'TR') + ' ';
-        else if (templateLang === 'en') languagePrefix = (window.getCountryFlag ? window.getCountryFlag('US') : 'US') + ' ';
+        if (templateLang === 'tr') {
+            languagePrefix = langOptions.tr + ' ';
+        } else if (templateLang === 'en') {
+            languagePrefix = langOptions.en + ' ';
+        }
         
         const option = document.createElement('option');
         option.value = template.name;

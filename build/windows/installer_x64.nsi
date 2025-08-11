@@ -1,4 +1,6 @@
-; NSIS script for x64
+; =========================
+; File: build/windows/installer_x64.nsi
+; =========================
 
 !define APP_NAME        "Bulk Mailer Go"
 !define APP_SHORT       "BulkMailerGo"
@@ -29,20 +31,16 @@ RequestExecutionLevel admin
 !insertmacro MUI_LANGUAGE "English"
 
 Section "Install"
-  ; Çalışma zamanı işlemler
   SetOutPath "$INSTDIR"
   File "${SRC_EXE_X64}"
 
-  ; Uninstaller yaz
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
 
-  ; Kısayollar
   CreateDirectory "$SMPROGRAMS\\${APP_NAME}"
   CreateShortCut "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk" "$INSTDIR\\${EXE_NAME}"
   CreateShortCut "$SMPROGRAMS\\${APP_NAME}\\Uninstall.lnk" "$INSTDIR\\Uninstall.exe"
   CreateShortCut "$DESKTOP\\${APP_NAME}.lnk" "$INSTDIR\\${EXE_NAME}"
 
-  ; Kayıt defteri (Uninstall)
   WriteRegStr   HKLM "${INSTALL_DIR_REG}" "DisplayName"     "${APP_NAME} (x64)"
   WriteRegStr   HKLM "${INSTALL_DIR_REG}" "DisplayVersion"  "${APP_VERSION}"
   WriteRegStr   HKLM "${INSTALL_DIR_REG}" "Publisher"       "${APP_PUBLISHER}"
@@ -54,17 +52,14 @@ Section "Install"
 SectionEnd
 
 Section "Uninstall"
-  ; Kısayolları sil
   Delete "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk"
   Delete "$SMPROGRAMS\\${APP_NAME}\\Uninstall.lnk"
   RMDir  "$SMPROGRAMS\\${APP_NAME}"
-
-  ; Masaüstü kısayolu
   Delete "$DESKTOP\\${APP_NAME}.lnk"
 
-  ; Uygulama klasörü
+  RMDir /r "$APPDATA\\${APP_SHORT}"
+  RMDir /r "$APPDATA\\${APP_NAME}"
   RMDir /r "$INSTDIR"
 
-  ; Uninstall registry
   DeleteRegKey HKLM "${INSTALL_DIR_REG}"
 SectionEnd

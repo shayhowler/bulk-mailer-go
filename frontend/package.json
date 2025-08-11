@@ -12,7 +12,6 @@
     "vite": "7.1.1"
   },
   "dependencies": {
-    "country-flag-emoji-polyfill": "^0.1.8",
     "tinymce": "8.0.1"
   },
   "engines": {

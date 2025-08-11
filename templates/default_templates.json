@@ -1,0 +1,102 @@
+[
+  {
+    "name": "Resmi Hoşgeldiniz - TR",
+    "subject": "{name}, firmamıza hoş geldiniz!",
+    "body": "",
+    "content": "<h1 style=\"text-align: center; color: navy;\">Hoşgeldiniz, {name}!</h1><p style=\"font-size: 14px; text-align: justify;\">{company} ailesine katıldığınız için teşekkür ederiz. Hesabınız başarıyla oluşturuldu.</p><p style=\"font-weight: bold; color: green;\">Size destek olmak için buradayız.</p><p>Saygılarımızla,<br><i>{company} Ekibi</i></p>",
+    "isPlain": false,
+    "language": "tr",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  },
+  {
+    "name": "Formal Welcome - EN",
+    "subject": "Welcome to our company, {name}!",
+    "body": "",
+    "content": "<h1 style=\"text-align: center; color: navy;\">Welcome, {name}!</h1><p style=\"font-size: 14px; text-align: justify;\">Thank you for joining the {company} family. Your account has been successfully created.</p><p style=\"font-weight: bold; color: green;\">We're here to support you.</p><p>Best regards,<br><i>{company} Team</i></p>",
+    "isPlain": false,
+    "language": "en",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  },
+  {
+    "name": "Toplantı Daveti - TR",
+    "subject": "{meeting_date} tarihli toplantı daveti",
+    "body": "",
+    "content": "<h2 style=\"text-align: center;\">Toplantı Detayları</h2><table style=\"border-collapse: collapse; width: 100%; margin-left: auto; margin-right: auto;\" border=\"1\"><thead><tr><th>Gündem</th><th>Süre</th></tr></thead><tbody><tr><td>{agenda_item1}</td><td>{agenda_duration1}</td></tr><tr><td>{agenda_item2}</td><td>{agenda_duration2}</td></tr></tbody></table><p style=\"text-align: justify;\">Lütfen belirtilen tarihte {meeting_place}'de hazır bulununuz.</p><ul style=\"list-style-type: square;\"><li>Başlangıç: {start_time}</li><li>Bitiş: {end_time}</li></ul><p style=\"font-style: italic;\">Katılımınız önemlidir.</p>",
+    "isPlain": false,
+    "language": "tr",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  },
+  {
+    "name": "Meeting Invitation - EN",
+    "subject": "Invitation to meeting on {meeting_date}",
+    "body": "",
+    "content": "<h2 style=\"text-align: center;\">Meeting Details</h2><table style=\"border-collapse: collapse; width: 100%; margin-left: auto; margin-right: auto;\" border=\"1\"><thead><tr><th>Agenda</th><th>Duration</th></tr></thead><tbody><tr><td>{agenda_item1}</td><td>{agenda_duration1}</td></tr><tr><td>{agenda_item2}</td><td>{agenda_duration2}</td></tr></tbody></table><p style=\"text-align: justify;\">Please be present at {meeting_place} on the specified date.</p><ul style=\"list-style-type: square;\"><li>Start: {start_time}</li><li>End: {end_time}</li></ul><p style=\"font-style: italic;\">Your participation is important.</p>",
+    "isPlain": false,
+    "language": "en",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  },
+  {
+    "name": "Uyarı Mesajı - TR",
+    "subject": "Önemli: {warning_subject}",
+    "body": "",
+    "content": "<p style=\"color: red; font-weight: bold; text-align: center;\">{warning_message}</p><p style=\"text-align: justify;\">Lütfen hızlıca işlem yapınız. İlgili departmanla iletişime geçebilirsiniz.</p><ol><li>Adım 1: {step1}</li><li>Adım 2: {step2}</li></ol><img src=\"{warning_image_url}\" alt=\"Uyarı İkonu\" style=\"display: block; margin: 0 auto; width: 100px; height: auto;\" />",
+    "isPlain": false,
+    "language": "tr",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  },
+  {
+    "name": "Warning Message - EN",
+    "subject": "Important: {warning_subject}",
+    "body": "",
+    "content": "<p style=\"color: red; font-weight: bold; text-align: center;\">{warning_message}</p><p style=\"text-align: justify;\">Please take action quickly. Contact the relevant department.</p><ol><li>Step 1: {step1}</li><li>Step 2: {step2}</li></ol><img src=\"{warning_image_url}\" alt=\"Warning Icon\" style=\"display: block; margin: 0 auto; width: 100px; height: auto;\" />",
+    "isPlain": false,
+    "language": "en",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  },
+  {
+    "name": "Şirket Haberleri - TR",
+    "subject": "{news_title}",
+    "body": "",
+    "content": "<h2 style=\"text-align: left; color: blue;\">{news_title}</h2><p style=\"text-align: justify;\">{news_content}</p><img src=\"{news_image_url}\" alt=\"Haber Görseli\" style=\"width: 100%; max-width: 600px; height: auto; float: right; margin-left: 10px;\" /><p>Detaylar için web sitemizi ziyaret edin.</p><p style=\"font-size: 12px; color: gray;\">Yayın Tarihi: {publish_date}</p>",
+    "isPlain": false,
+    "language": "tr",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  },
+  {
+    "name": "Company News - EN",
+    "subject": "{news_title}",
+    "body": "",
+    "content": "<h2 style=\"text-align: left; color: blue;\">{news_title}</h2><p style=\"text-align: justify;\">{news_content}</p><img src=\"{news_image_url}\" alt=\"News Image\" style=\"width: 100%; max-width: 600px; height: auto; float: right; margin-left: 10px;\" /><p>Visit our website for more details.</p><p style=\"font-size: 12px; color: gray;\">Publish Date: {publish_date}</p>",
+    "isPlain": false,
+    "language": "en",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  },
+  {
+    "name": "Liste Örneği - TR",
+    "subject": "İçerik Listesi - {topic}",
+    "body": "",
+    "content": "<h3 style=\"text-align: center;\">{topic}</h3><ol style=\"text-align: left;\"><li>Öğe 1: {item1_desc}</li><li>Öğe 2: {item2_desc}</li><li>Öğe 3: {item3_desc}</li></ol><p style=\"text-align: center; font-style: italic;\">Her öğe hakkında detaylı bilgi için bizimle iletişime geçebilirsiniz.</p><table style=\"width: 50%; margin: 0 auto;\" border=\"1\"><tr><td>Öğe</td><td>Açıklama</td></tr><tr><td>1</td><td>{item1}</td></tr></table>",
+    "isPlain": false,
+    "language": "tr",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  },
+  {
+    "name": "List Example - EN",
+    "subject": "Content List - {topic}",
+    "body": "",
+    "content": "<h3 style=\"text-align: center;\">{topic}</h3><ol style=\"text-align: left;\"><li>Item 1: {item1_desc}</li><li>Item 2: {item2_desc}</li><li>Item 3: {item3_desc}</li></ol><p style=\"text-align: center; font-style: italic;\">Contact us for detailed information on each item.</p><table style=\"width: 50%; margin: 0 auto;\" border=\"1\"><tr><td>Item</td><td>Description</td></tr><tr><td>1</td><td>{item1}</td></tr></table>",
+    "isPlain": false,
+    "language": "en",
+    "createdAt": "2025-08-10 16:46:00",
+    "modifiedAt": "2025-08-10 16:46:00"
+  }
+]

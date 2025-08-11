@@ -1,4 +1,6 @@
-; NSIS script for ARM64
+; =========================
+; File: build/windows/installer_arm64.nsi
+; =========================
 
 !define APP_NAME        "Bulk Mailer Go"
 !define APP_SHORT       "BulkMailerGo"
@@ -53,9 +55,10 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk"
   Delete "$SMPROGRAMS\\${APP_NAME}\\Uninstall.lnk"
   RMDir  "$SMPROGRAMS\\${APP_NAME}"
-
   Delete "$DESKTOP\\${APP_NAME}.lnk"
 
+  RMDir /r "$APPDATA\\${APP_SHORT}"
+  RMDir /r "$APPDATA\\${APP_NAME}"
   RMDir /r "$INSTDIR"
 
   DeleteRegKey HKLM "${INSTALL_DIR_REG}"

@@ -395,13 +395,15 @@ export function showMappingModal(placeholders, fields) {
     
     fieldsContainer.innerHTML = '';
     
+    const selectFieldText = window.getText ? window.getText('mapping-select-field') : 'Select Field';
+    
     placeholders.forEach(placeholder => {
         const fieldGroup = document.createElement('div');
         fieldGroup.className = 'form-group';
         fieldGroup.innerHTML = `
             <label>${placeholder}:</label>
             <select data-placeholder="${placeholder}">
-                <option value="">Alan Seç</option>
+                <option value="">${selectFieldText}</option>
                 ${fields.map(field => `<option value="${field}">${field}</option>`).join('')}
             </select>
         `;

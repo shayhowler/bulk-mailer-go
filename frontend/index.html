@@ -11,7 +11,9 @@
         <div class="header-controls">
             <button id="hamburger">☰</button>
         </div>
-<select id="language-select" onchange="changeLanguageGlobal()"></select>
+        <select id="language-select" onchange="changeLanguageGlobal()">
+            <!-- Language options will be populated by JavaScript -->
+        </select>
         <div id="log-sidebar" class="hidden">
             <h3 id="logs-title"></h3>
             <div class="log-controls">
@@ -22,12 +24,12 @@
         </div>
         <div id="content">
             <div id="tabs">
-                <button class="tab active" data-tab="settings" onclick="switchTab('settings')" id="settings-tab"></button>
-                <button class="tab" data-tab="accounts" onclick="switchTab('accounts')" id="accounts-tab"></button>
-                <button class="tab" data-tab="contacts" onclick="switchTab('contacts')" disabled id="contacts-tab"></button>
-                <button class="tab" data-tab="templates" onclick="switchTab('templates')" id="templates-tab"></button>
-                <button class="tab" data-tab="send" onclick="switchTab('send')" id="send-tab"></button>
-                <button class="tab" data-tab="logs" onclick="switchTab('logs')" id="logs-tab"></button>
+                <button class="tab active" data-tab="settings" onclick="switchTab('settings')" id="settings-tab" data-i18n="tabs.settings"></button>
+                <button class="tab" data-tab="accounts" onclick="switchTab('accounts')" id="accounts-tab" data-i18n="tabs.accounts"></button>
+                <button class="tab" data-tab="contacts" onclick="switchTab('contacts')" disabled id="contacts-tab" data-i18n="tabs.contacts"></button>
+                <button class="tab" data-tab="templates" onclick="switchTab('templates')" id="templates-tab" data-i18n="templates.title"></button>
+                <button class="tab" data-tab="send" onclick="switchTab('send')" id="send-tab" data-i18n="tabs.send"></button>
+                <button class="tab" data-tab="logs" onclick="switchTab('logs')" id="logs-tab" data-i18n="tabs.logs"></button>
             </div>
             
             <div id="settings" class="tab-content">
@@ -35,58 +37,57 @@
                 <div class="form-container">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label id="country-label"></label>
+                            <label id="country-label" data-i18n="settings.country"></label>
                             <select id="settings-country"></select>
                         </div>
                         <div class="form-group">
-                            <label id="timezone-label"></label>
+                            <label id="timezone-label" data-i18n="settings.timezone"></label>
                             <select id="settings-timezone"></select>
                         </div>
                         <div class="form-group">
-                            <label id="dateformat-label"></label>
+                            <label id="dateformat-label" data-i18n="settings.dateformat"></label>
                             <select id="settings-dateformat">
                                 <option value="24h">24-hour (HH:mm:ss)</option>
                                 <option value="12h">12-hour (hh:mm:ss a)</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label id="default-language-label"></label>
-<select id="settings-default-language">
-                                <option value="tr" data-i18n="settings.language.tr"></option>
-                                <option value="en" data-i18n="settings.language.en"></option>
+                            <label id="default-language-label" data-i18n="settings.defaultLanguage"></label>
+                            <select id="settings-default-language">
+                                <!-- Language options will be populated by JavaScript -->
                             </select>
                         </div>
                         <div class="form-group">
-                            <label id="logs-language-label"></label>
+                            <label id="logs-language-label" data-i18n="settings.logsLanguage"></label>
                             <input type="text" id="logs-language-fixed" value="English (fixed)" disabled />
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button class="btn-success" onclick="saveSettings()" id="save-settings-btn"></button>
-                        <button class="btn-secondary" onclick="reloadSettings()" id="reload-settings-btn"></button>
+                        <button class="btn-success" onclick="saveSettings()" id="save-settings-btn" data-i18n="settings.save"></button>
+                        <button class="btn-secondary" onclick="reloadSettings()" id="reload-settings-btn" data-i18n="settings.reload"></button>
                     </div>
                 </div>
                 
                 <!-- Data Management Section -->
                 <div class="form-container" style="margin-top: 20px;">
-                    <h3 id="data-management-title"></h3>
+                    <h3 id="data-management-title" data-i18n="settings.dataManagement"></h3>
                     <div class="data-info">
                         <div class="form-group">
-                            <label id="data-location-label"></label>
+                            <label id="data-location-label" data-i18n="settings.dataLocation"></label>
                             <input type="text" id="data-location" readonly>
                         </div>
                         <div class="form-group">
-                            <label id="data-size-label"></label>
+                            <label id="data-size-label" data-i18n="settings.dataSize"></label>
                             <input type="text" id="data-size" readonly>
                         </div>
                     </div>
                     <div class="data-actions">
-                        <button class="btn-info" onclick="refreshDataInfo()" id="refresh-data-btn"></button>
-                        <button class="btn-warning" onclick="exportData()" id="export-data-btn"></button>
-                        <button class="btn-secondary" onclick="importData()" id="import-data-btn"></button>
-                        <button class="btn-primary" onclick="importTemplates()" id="import-templates-btn" style="background: #667eea;"></button>
-                        <button class="btn-success" onclick="importAccounts()" id="import-accounts-btn" style="background: #48bb78;"></button>
-                        <button class="btn-danger" onclick="showUninstallDialog()" id="uninstall-app-btn"></button>
+                        <button class="btn-info" onclick="refreshDataInfo()" id="refresh-data-btn" data-i18n="settings.refreshData"></button>
+                        <button class="btn-warning" onclick="exportData()" id="export-data-btn" data-i18n="settings.exportData"></button>
+                        <button class="btn-secondary" onclick="importData()" id="import-data-btn" data-i18n="settings.importData"></button>
+                        <button class="btn-primary" onclick="importTemplates()" id="import-templates-btn" style="background: #667eea;" data-i18n="settings.importTemplates"></button>
+                        <button class="btn-success" onclick="importAccounts()" id="import-accounts-btn" style="background: #48bb78;" data-i18n="settings.importAccounts"></button>
+                        <button class="btn-danger" onclick="showUninstallDialog()" id="uninstall-app-btn" data-i18n="settings.uninstallApp"></button>
                     </div>
                 </div>
                 
@@ -94,7 +95,7 @@
             </div>
             
             <div id="accounts" class="tab-content hidden">
-                <h2 id="accounts-title"></h2>
+                <h2 id="accounts-title" data-i18n="accounts.title"></h2>
                 <div class="table-container">
                     <table id="accounts-table">
                         <thead>
@@ -159,7 +160,7 @@
             </div>
             
             <div id="contacts" class="tab-content hidden">
-                <h2 id="contacts-title"></h2>
+                <h2 id="contacts-title" data-i18n="contacts.title"></h2>
                 <div id="source-selection" class="source-panel">
                     <div class="form-group">
                         <label id="data-source-label"></label>
@@ -224,57 +225,54 @@
             </div>
             
             <div id="templates" class="tab-content hidden">
-                <h2 id="templates-title"></h2>
+                <h2 id="templates-title" data-i18n="templates.title"></h2>
                 <div class="form-group" style="margin-bottom:10px;">
-                    <label id="template-filter-label"></label>
+                    <label id="template-filter-label" data-i18n="templates.filter.label">Language Filter:</label>
                     <select id="templates-filter" onchange="filterTemplatesUI()">
-                        <option value="all">🌍 <span data-i18n="language.templates.all"></span></option>
-                        <option value="tr" data-i18n="language.templates.filtered"></option>
-                        <option value="en" data-i18n="language.templates.filtered"></option>
+                        <!-- Filter options will be populated by JavaScript -->
                     </select>
                 </div>
                 <div class="table-container">
                     <table id="templates-table">
                         <thead>
                             <tr>
-                                <th id="template-name-header"></th>
-                                <th id="template-subject-header"></th>
-                                <th id="template-content-header"></th>
-                                <th id="template-language-header"></th>
-                                <th id="template-actions-header"></th>
+                                <th id="template-name-header" data-i18n="template-name-header"></th>
+                                <th id="template-subject-header" data-i18n="template-subject-header"></th>
+                                <th id="template-content-header" data-i18n="template-content-header"></th>
+                                <th id="template-language-header" data-i18n="template-language-header"></th>
+                                <th id="template-actions-header" data-i18n="template-actions-header"></th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
-                <button class="btn-primary" onclick="showTemplateForm()" id="add-template-btn"></button>
+                <button class="btn-primary" onclick="showTemplateForm()" id="add-template-btn" data-i18n="add-template-btn"></button>
                 
                 <div id="template-form" class="form-container hidden">
                     <h3 id="template-edit-title"></h3>
                     <input type="hidden" id="template-id">
                     <div class="form-group">
-                        <label id="template-name-label"></label>
+                        <label id="template-name-label" data-i18n="template-name-label"></label>
                         <input id="template-name" placeholder="" required>
                     </div>
                     <div class="form-group">
-                        <label id="template-subject-label"></label>
+                        <label id="template-subject-label" data-i18n="template-subject-label"></label>
                         <input id="template-subject" placeholder="" required>
                     </div>
                     <div class="form-group">
-                        <label id="template-language-label"></label>
+                        <label id="template-language-label" data-i18n="template-language-label"></label>
                         <select id="template-language">
-<option value="tr">🇹🇷 Türkçe</option>
-                            <option value="en">🇺🇸 English</option>
+                            <!-- Language options will be populated by JavaScript -->
                         </select>
                     </div>
                     <div class="form-group">
-                        <label id="template-content-label"></label>
+                        <label id="template-content-label" data-i18n="template-content-label"></label>
                         <div class="placeholder-info" style="margin-bottom: 10px; color: #666; font-size: 0.9em; font-style: italic;">
                             <span id="template-placeholder-info">Use {placeholder_name} format for placeholders</span>
                             <span style="margin-left: 15px;">•</span>
                             <span id="template-theme-info" style="margin-left: 10px;">Theme applied when sending</span>
                         </div>
-<div class="editor-wrapper" id="template-editor-wrapper" style="position:relative;">
+                        <div class="editor-wrapper" id="template-editor-wrapper" style="position:relative;">
                           <div class="editor-controls" style="position:absolute;top:-35px;right:0px;z-index:1100;display:flex;gap:3px;">
                             <button class="theme-toggle" id="change-theme-template-btn">
                             </button>
@@ -288,16 +286,16 @@
                         <button class="btn-small" onclick="toggleFullscreenPreview('template-preview')" id="fullscreen-template-btn"></button>
                     </div>
                     <div class="form-actions">
-                        <button class="btn-success" onclick="saveTemplate()" id="save-template-btn"></button>
-                        <button class="btn-danger" onclick="deleteTemplate()" id="delete-template-btn" style="display: none;"></button>
-                        <button class="btn-secondary" onclick="hideTemplateForm()" id="cancel-template-btn"></button>
+                        <button class="btn-success" onclick="saveTemplate()" id="save-template-btn" data-i18n="save-template-btn"></button>
+                        <button class="btn-danger" onclick="deleteTemplate()" id="delete-template-btn" style="display: none;" data-i18n="delete-template-btn"></button>
+                        <button class="btn-secondary" onclick="hideTemplateForm()" id="cancel-template-btn" data-i18n="cancel-template-btn"></button>
                     </div>
                 </div>
                 <button id="continue-templates-btn" class="btn-next" onclick="enableTab('send')"></button>
             </div>
             
             <div id="send" class="tab-content hidden">
-                <h2 id="send-title"></h2>
+                <h2 id="send-title" data-i18n="send.title"></h2>
                 <div class="send-panel">
                     <div class="form-grid">
                         <div class="inline-fields">
@@ -314,11 +312,9 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label id="template-filter-label"></label>
+                                <label id="template-filter-label" data-i18n="templates.filter.label">Language Filter:</label>
                                 <select id="template-filter" onchange="filterTemplates()">
-<option value="all" data-i18n="templates.filter.all"></option>
-                                    <option value="tr" data-i18n="templates.filter.tr"></option>
-                                    <option value="en" data-i18n="templates.filter.en"></option>
+                                    <!-- Filter options will be populated by JavaScript -->
                                 </select>
                             </div>
                         </div>
@@ -371,7 +367,7 @@
             
             <div id="logs" class="tab-content hidden">
                 <div class="logs-header">
-                    <h2 id="logs-main-title"></h2>
+                    <h2 id="logs-main-title" data-i18n="logs.title"></h2>
                     <div class="log-bulk-controls">
                         <button class="btn-info" onclick="toggleSelectionMode()" id="toggle-selection-mode"></button>
                         <button class="btn-danger" onclick="deleteSelectedLogs()" disabled style="display: none;" id="delete-selected-logs"></button>

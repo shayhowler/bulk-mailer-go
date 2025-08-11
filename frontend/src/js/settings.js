@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { logToSystem, showNotification } from './utils.js';
 import { COUNTRIES, TIMEZONES_BY_COUNTRY, ALL_TIMEZONES } from '../data/timezones.js';
-import { changeLanguage, getCountryFlag } from './languageManager.js';
+import { changeLanguage, LANG_OPTIONS, getLanguageOptionsForCurrentLang } from './languageManager.js';
 
 function populateCountryDropdown() {
   const countrySel = document.getElementById('settings-country');
@@ -14,8 +14,7 @@ function populateCountryDropdown() {
   COUNTRIES.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.code;
-    const flag = getCountryFlag(c.code);
-    opt.textContent = `${flag} ${c.name}`;
+    opt.textContent = c.name;
     countrySel.appendChild(opt);
   });
 }
@@ -48,6 +47,28 @@ function wireDropdownInteractions() {
   };
 }
 
+export function populateLanguageDropdown() {
+  const langSel = document.getElementById('settings-default-language');
+  if (!langSel) return;
+  langSel.innerHTML = '';
+  
+  const optEmpty = document.createElement('option');
+  optEmpty.value = '';
+  optEmpty.textContent = '—';
+  langSel.appendChild(optEmpty);
+
+  const langOptions = getLanguageOptionsForCurrentLang();
+  const opt1 = document.createElement('option');
+  opt1.value = 'tr';
+  opt1.textContent = langOptions.tr;
+  langSel.appendChild(opt1);
+  
+  const opt2 = document.createElement('option');
+  opt2.value = 'en';
+  opt2.textContent = langOptions.en;
+  langSel.appendChild(opt2);
+}
+
 export async function loadSettings() {
   if (!(window.go && window.go.main && window.go.main.App && window.go.main.App.GetSettings)) return;
   try {
@@ -62,6 +83,7 @@ export async function loadSettings() {
     // Populate dropdowns then apply
     populateCountryDropdown();
     populateTimezoneDropdown(state.settings.country);
+    populateLanguageDropdown();
     applySettingsToUI();
     wireDropdownInteractions();
     logToSystem('Settings loaded', 'info');
