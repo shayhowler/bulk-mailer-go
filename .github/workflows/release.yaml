@@ -1,4 +1,3 @@
-# .github/workflows/release.yml
 name: release
 
 on:
@@ -132,6 +131,90 @@ jobs:
         if: runner.os == 'macOS'
         run: wails build
 
+      # Ensure icon exists and is referenced
+      - name: Ensure app icon (.icns) in bundle (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_NAME="${APP_DESKTOP_NAME}.app"
+          ALT_NAME="${PROJECT_NAME}.app"
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            APP_DIR="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            APP_DIR="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"; ls -la build/bin || true; exit 1
+          fi
+
+          ICON_PNG="${ICON_PNG}"
+          ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
+          mkdir -p "$(dirname "$ICNS_PATH")"
+
+          if [ -f "$ICON_PNG" ]; then
+            TMPSET="iconset"
+            rm -rf "$TMPSET"; mkdir -p "$TMPSET"
+            sips -z 16 16     "$ICON_PNG" --out "$TMPSET/icon_16x16.png" >/dev/null
+            sips -z 32 32     "$ICON_PNG" --out "$TMPSET/icon_16x16@2x.png" >/dev/null
+            sips -z 32 32     "$ICON_PNG" --out "$TMPSET/icon_32x32.png" >/dev/null
+            sips -z 64 64     "$ICON_PNG" --out "$TMPSET/icon_32x32@2x.png" >/dev/null
+            sips -z 128 128   "$ICON_PNG" --out "$TMPSET/icon_128x128.png" >/dev/null
+            sips -z 256 256   "$ICON_PNG" --out "$TMPSET/icon_128x128@2x.png" >/dev/null
+            sips -z 256 256   "$ICON_PNG" --out "$TMPSET/icon_256x256.png" >/dev/null
+            sips -z 512 512   "$ICON_PNG" --out "$TMPSET/icon_256x256@2x.png" >/dev/null
+            sips -z 512 512   "$ICON_PNG" --out "$TMPSET/icon_512x512.png" >/dev/null
+            cp "$ICON_PNG" "$TMPSET/icon_512x512@2x.png" 2>/dev/null || true
+            iconutil -c icns "$TMPSET" -o "$ICNS_PATH"
+            rm -rf "$TMPSET"
+          fi
+
+          PLIST="${APP_DIR}/Contents/Info.plist"
+          if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
+          else
+            /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"
+          fi
+
+      # Import Developer ID Application cert from secrets (p12)
+      - name: Import signing certificate (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          P12_B64: ${{ secrets.DEVELOPER_ID_APP_CERT_BASE64 }}
+          P12_PASS: ${{ secrets.CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="build.keychain"
+          security create-keychain -p "" "$KEYCHAIN"
+          security default-keychain -s "$KEYCHAIN"
+          security unlock-keychain -p "" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+
+          echo "$P12_B64" | base64 --decode > app.p12
+          security import app.p12 -k "$KEYCHAIN" -P "$P12_PASS" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN"
+          security find-identity -v -p codesigning || true
+
+      - name: Codesign .app (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          SIGN_IDENTITY_APP: ${{ secrets.SIGN_IDENTITY_APP }}
+        run: |
+          set -euo pipefail
+          APP_NAME="${APP_DESKTOP_NAME}.app"
+          ALT_NAME="${PROJECT_NAME}.app"
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            APP_DIR="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            APP_DIR="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"; exit 1
+          fi
+
+          codesign --force --options runtime --deep -s "$SIGN_IDENTITY_APP" "$APP_DIR"
+          codesign --verify --deep --strict "$APP_DIR"
+
       - name: Create macOS DMG
         if: runner.os == 'macOS'
         shell: bash
@@ -158,6 +241,21 @@ jobs:
           ln -s /Applications "${DMG_DIR}/Applications"
           hdiutil create -volname "${APP_DESKTOP_NAME}" -srcfolder "${DMG_DIR}" -ov -format UDZO "${OUT_DMG}"
           rm -rf "${DMG_DIR}"
+
+      - name: Notarize + staple DMG (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          AC_API_KEY_ID: ${{ secrets.AC_API_KEY_ID }}
+          AC_API_ISSUER_ID: ${{ secrets.AC_API_ISSUER_ID }}
+          AC_API_KEY_BASE64: ${{ secrets.AC_API_KEY_BASE64 }}
+        run: |
+          set -euo pipefail
+          OUT_DMG="${PROJECT_NAME}_macOS.dmg"
+          echo "$AC_API_KEY_BASE64" | base64 --decode > authkey.p8
+          xcrun notarytool submit "$OUT_DMG" --key authkey.p8 --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID" --wait
+          xcrun stapler staple "$OUT_DMG"
+          rm -f authkey.p8
 
       - name: Prepare outputs (macOS)
         if: runner.os == 'macOS'
@@ -221,10 +319,26 @@ jobs:
           if (Test-Path "${{ env.WIN_EXE_ARM64 }}") { Copy-Item "${{ env.WIN_EXE_ARM64 }}" "release_assets\${{ env.PROJECT_NAME }}_windows_arm64.exe" -Force }
           Get-ChildItem "build\windows\dist" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
 
-      - name: Upload build outputs
+      # ---------- Upload artifacts (per OS, fixed names) ----------
+      - name: Upload Linux outputs
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}-outputs
+          name: Linux-artifacts
+          path: release_assets/*
+
+      - name: Upload macOS outputs
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOs-artifacts
+          path: release_assets/*
+
+      - name: Upload Windows outputs
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-artifacts
           path: release_assets/*
 
   publish:
@@ -233,19 +347,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download all outputs
+      - name: Download Linux artifacts
+      # each artifact downloads as a zip by default
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          name: Linux-artifacts
+          path: artifacts/Linux
 
-      - name: Prepare final assets
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macOs-artifacts
+          path: artifacts/macOS
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Windows-artifacts
+          path: artifacts/Windows
+
+      - name: Unzip and collect binaries
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p release_assets
-          cp artifacts/ubuntu-latest-outputs/*AppImage release_assets/ 2>/dev/null || true
-          cp artifacts/macos-latest-outputs/*.dmg release_assets/ 2>/dev/null || true
-          cp artifacts/windows-latest-outputs/*.exe release_assets/ 2>/dev/null || true
+
+          # Unzip all artifact zips
+          find artifacts -type f -name "*.zip" -print0 | while IFS= read -r -d '' z; do
+            dest="$(dirname "$z")/unzipped"
+            mkdir -p "$dest"
+            unzip -o "$z" -d "$dest" >/dev/null
+          done
+
+          # Collect .AppImage, .dmg, .exe from any depth
+          find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 | \
+            xargs -0 -I {} cp -f {} release_assets/
+
+          echo "Final payload:"
           ls -la release_assets
 
       - name: Create GitHub Release
