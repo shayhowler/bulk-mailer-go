@@ -65,8 +65,7 @@ jobs:
           RUN PKGDIR="/usr/lib/aarch64-linux-gnu/pkgconfig"; if [ -f "$PKGDIR/webkit2gtk-4.0.pc" ]; then :; elif [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"; fi
           WORKDIR /workspace
           EOF
-          docker buildx create --use --name builder || true
-          docker buildx build --platform linux/arm64 -t bulk-mailer-arm64 -f Dockerfile.arm64 --build-arg GO_VERSION=${{ env.GO_VERSION }} --build-arg NODE_VERSION=${{ env.NODE_VERSION }} --load .
+          docker buildx build --platform linux/arm64 -t bulk-mailer-arm64 -f Dockerfile.arm64 --build-arg GO_VERSION=${GO_VERSION} --build-arg NODE_VERSION=${NODE_VERSION} --load .
 
       - name: Build and package inside arm64 container
         shell: bash
@@ -93,23 +92,23 @@ jobs:
               cp "${ICON_SRC}" "${APPDIR}/appicon.png"
             fi
 
-            cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF
-[Desktop Entry]
-Type=Application
-Name=${APP_DESKTOP_NAME:-Bulk Mailer Go}
-Exec=${PROJECT_NAME:-BulkMailerGo}
-Icon=appicon
-Categories=Network;Email;
-Comment=Professional Email Marketing Application
-Terminal=false
-EOF
+            cat > "${APPDIR}/${DESKTOP_FILE}" <<'EOF'
+            [Desktop Entry]
+            Type=Application
+            Name=${APP_DESKTOP_NAME:-Bulk Mailer Go}
+            Exec=${PROJECT_NAME:-BulkMailerGo}
+            Icon=appicon
+            Categories=Network;Email;
+            Comment=Professional Email Marketing Application
+            Terminal=false
+            EOF
 
             cat > "${APPDIR}/AppRun" <<'EOF'
-#!/bin/sh
-HERE="$(dirname "$(readlink -f "$0")")"
-export APPDIR="$HERE"
-exec "$HERE/usr/bin/BulkMailerGo" "$@"
-EOF
+            #!/bin/sh
+            HERE="$(dirname "$(readlink -f "$0")")"
+            export APPDIR="$HERE"
+            exec "$HERE/usr/bin/BulkMailerGo" "$@"
+            EOF
             chmod +x "${APPDIR}/AppRun"
 
             OUT_STD="${PROJECT_NAME:-BulkMailerGo}_linux_aarch64.AppImage"
@@ -205,22 +204,22 @@ EOF
             cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
             cp "${ICON_SRC}" "${APPDIR}/appicon.png"
           fi
-          cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF
-[Desktop Entry]
-Type=Application
-Name=${{ env.APP_DESKTOP_NAME }}
-Exec=${{ env.PROJECT_NAME }}
-Icon=appicon
-Categories=Network;Email;
-Comment=Professional Email Marketing Application
-Terminal=false
-EOF
+          cat > "${APPDIR}/${DESKTOP_FILE}" <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=${APP_DESKTOP_NAME}
+          Exec=${PROJECT_NAME}
+          Icon=appicon
+          Categories=Network;Email;
+          Comment=Professional Email Marketing Application
+          Terminal=false
+          EOF
           cat > "${APPDIR}/AppRun" <<'EOF'
-#!/bin/sh
-HERE="$(dirname "$(readlink -f "$0")")"
-export APPDIR="$HERE"
-exec "$HERE/usr/bin/BulkMailerGo" "$@"
-EOF
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          export APPDIR="$HERE"
+          exec "$HERE/usr/bin/BulkMailerGo" "$@"
+          EOF
           chmod +x "${APPDIR}/AppRun"
           ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_amd64.AppImage"
       - name: Upload AMD64 artifact (fail if missing)
@@ -272,7 +271,7 @@ EOF
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}"]; then APP_DIR="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
+          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
           ICON_IN="${ICON_PNG}"
           ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
