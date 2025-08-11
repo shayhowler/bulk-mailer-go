@@ -131,8 +131,80 @@ jobs:
         if: runner.os == 'macOS'
         run: wails build
 
-      # Ensure icon exists and is referenced
       - name: Ensure app icon (.icns) in bundle (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_NAME="${APP_DESKTOP_NAME}.app"
+          ALT_NAME="${PROJECT_NAME}.app"
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            APP_DIR="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            APP_DIR="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"; ls -la build/bin || true; exit 1
+          fi
+
+          ICON_PNG="${ICON_PNG}"  # build/appicon.png
+          ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
+          mkdir -p "$(dirname "$ICNS_PATH")"
+
+          if [ -f "$ICNS_PATH" ]; then
+            echo "Existing .icns found at $ICNS_PATH. Skipping conversion."
+          else
+            if [ ! -f "$ICON_PNG" ]; then
+              echo "Icon PNG not found at $ICON_PNG. Skipping icon conversion."
+            else
+              W=$(sips -g pixelWidth "$ICON_PNG" | awk '/pixelWidth:/{print $2}')
+              H=$(sips -g pixelHeight "$ICON_PNG" | awk '/pixelHeight:/{print $2}')
+              echo "Source PNG size: ${W}x${H}"
+              if [ "$W" != "$H" ]; then
+                echo "Warning: icon PNG is not square; resizing to 1024x1024 may distort."
+              fi
+              if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then
+                echo "Resizing icon to 1024x1024 for proper iconset generation..."
+                sips -z 1024 1024 "$ICON_PNG" --out "build/appicon_1024.png" >/dev/null
+                ICON_PNG="build/appicon_1024.png"
+              fi
+
+              ICONSET="appicon.iconset"
+              rm -rf "$ICONSET"; mkdir -p "$ICONSET"
+
+              # 1x
+              sips -z 16 16     "$ICON_PNG" --out "$ICONSET/icon_16x16.png" >/dev/null
+              sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_32x32.png" >/dev/null
+              sips -z 128 128   "$ICON_PNG" --out "$ICONSET/icon_128x128.png" >/dev/null
+              sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_256x256.png" >/dev/null
+              sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_512x512.png" >/dev/null
+
+              # 2x
+              sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+              sips -z 64 64     "$ICON_PNG" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+              sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
+              sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
+              cp "$ICON_PNG" "$ICONSET/icon_512x512@2x.png"
+
+              # Control
+              for f in icon_16x16.png icon_16x16@2x.png icon_32x32.png icon_32x32@2x.png icon_128x128.png icon_128x128@2x.png icon_256x256.png icon_256x256@2x.png icon_512x512.png icon_512x512@2x.png; do
+                [ -f "$ICONSET/$f" ] || { echo "Missing icon size: $f"; ls -la "$ICONSET"; exit 1; }
+              done
+
+              # .icns
+              iconutil -c icns "$ICONSET" -o "$ICNS_PATH"
+              rm -rf "$ICONSET"
+            fi
+          fi
+
+          PLIST="${APP_DIR}/Contents/Info.plist"
+          if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
+          else
+            /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"
+          fi
+
+          echo "Icon setup done."
+
         if: runner.os == 'macOS'
         shell: bash
         run: |
