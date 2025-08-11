@@ -27,15 +27,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
-        with: { go-version: ${{ env.GO_VERSION }} }
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }} }
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Enforce npm version
         shell: bash
@@ -139,15 +142,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
-        with: { go-version: ${{ env.GO_VERSION }} }
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }} }
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Enforce npm version
         shell: bash
@@ -251,15 +257,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
-        with: { go-version: ${{ env.GO_VERSION }} }
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }} }
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Enforce npm version
         run: |
@@ -293,9 +302,15 @@ jobs:
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}";
-          elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}";
-          else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            APP_DIR="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            APP_DIR="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            ls -la build/bin || true
+            exit 1
+          fi
           ICON_IN="${ICON_PNG}"
           ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
@@ -306,7 +321,9 @@ jobs:
               sips -z 1024 1024 "$ICON_IN" --out "build/appicon_1024.png" >/dev/null
               ICON_IN="build/appicon_1024.png"
             fi
-            ICONSET="appicon.iconset"; rm -rf "$ICONSET"; mkdir -p "$ICONSET"
+            ICONSET="appicon.iconset"
+            rm -rf "$ICONSET"
+            mkdir -p "$ICONSET"
             sips -z 16 16  "$ICON_IN" --out "$ICONSET/icon_16x16.png" >/dev/null
             sips -z 32 32  "$ICON_IN" --out "$ICONSET/icon_32x32.png" >/dev/null
             sips -z 128 128 "$ICON_IN" --out "$ICONSET/icon_128x128.png" >/dev/null
@@ -352,9 +369,14 @@ jobs:
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}";
-          elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}";
-          else echo "No .app found under build/bin"; exit 1; fi
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            APP_DIR="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            APP_DIR="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            exit 1
+          fi
           codesign --force --options runtime --deep -s "$SIGN_IDENTITY_APP" "$APP_DIR"
           codesign --verify --deep --strict "$APP_DIR"
 
@@ -365,11 +387,20 @@ jobs:
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
           OUT_DMG="${PROJECT_NAME}_macOS_arm64.dmg"
-          if [ -d "build/bin/${APP_NAME}" ]; then SRC_APP="build/bin/${APP_NAME}";
-          elif [ -d "build/bin/${ALT_NAME}" ]; then SRC_APP="build/bin/${ALT_NAME}";
-          else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
-          DMG_DIR="dmgroot"; rm -rf "${DMG_DIR}"; mkdir -p "${DMG_DIR}"
-          cp -R "${SRC_APP}" "${DMG_DIR}/"; ln -s /Applications "${DMG_DIR}/Applications"
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            SRC_APP="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            SRC_APP="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            ls -la build/bin || true
+            exit 1
+          fi
+          DMG_DIR="dmgroot"
+          rm -rf "${DMG_DIR}"
+          mkdir -p "${DMG_DIR}"
+          cp -R "${SRC_APP}" "${DMG_DIR}/"
+          ln -s /Applications "${DMG_DIR}/Applications"
           hdiutil create -volname "${APP_DESKTOP_NAME}" -srcfolder "${DMG_DIR}" -ov -format UDZO "${OUT_DMG}"
           rm -rf "${DMG_DIR}"
 
@@ -400,15 +431,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
-        with: { go-version: ${{ env.GO_VERSION }} }
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }} }
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Enforce npm version
         run: |
@@ -442,9 +476,15 @@ jobs:
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}";
-          elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}";
-          else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            APP_DIR="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            APP_DIR="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            ls -la build/bin || true
+            exit 1
+          fi
           ICON_IN="${ICON_PNG}"
           ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
@@ -455,7 +495,9 @@ jobs:
               sips -z 1024 1024 "$ICON_IN" --out "build/appicon_1024.png" >/dev/null
               ICON_IN="build/appicon_1024.png"
             fi
-            ICONSET="appicon.iconset"; rm -rf "$ICONSET"; mkdir -p "$ICONSET"
+            ICONSET="appicon.iconset"
+            rm -rf "$ICONSET"
+            mkdir -p "$ICONSET"
             sips -z 16 16  "$ICON_IN" --out "$ICONSET/icon_16x16.png" >/dev/null
             sips -z 32 32  "$ICON_IN" --out "$ICONSET/icon_32x32.png" >/dev/null
             sips -z 128 128 "$ICON_IN" --out "$ICONSET/icon_128x128.png" >/dev/null
@@ -501,9 +543,14 @@ jobs:
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}";
-          elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}";
-          else echo "No .app found under build/bin"; exit 1; fi
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            APP_DIR="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            APP_DIR="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            exit 1
+          fi
           codesign --force --options runtime --deep -s "$SIGN_IDENTITY_APP" "$APP_DIR"
           codesign --verify --deep --strict "$APP_DIR"
 
@@ -514,11 +561,20 @@ jobs:
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
           OUT_DMG="${PROJECT_NAME}_macOS_amd64.dmg"
-          if [ -d "build/bin/${APP_NAME}" ]; then SRC_APP="build/bin/${APP_NAME}";
-          elif [ -d "build/bin/${ALT_NAME}" ]; then SRC_APP="build/bin/${ALT_NAME}";
-          else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
-          DMG_DIR="dmgroot"; rm -rf "${DMG_DIR}"; mkdir -p "${DMG_DIR}"
-          cp -R "${SRC_APP}" "${DMG_DIR}/"; ln -s /Applications "${DMG_DIR}/Applications"
+          if [ -d "build/bin/${APP_NAME}" ]; then
+            SRC_APP="build/bin/${APP_NAME}"
+          elif [ -d "build/bin/${ALT_NAME}" ]; then
+            SRC_APP="build/bin/${ALT_NAME}"
+          else
+            echo "No .app found under build/bin"
+            ls -la build/bin || true
+            exit 1
+          fi
+          DMG_DIR="dmgroot"
+          rm -rf "${DMG_DIR}"
+          mkdir -p "${DMG_DIR}"
+          cp -R "${SRC_APP}" "${DMG_DIR}/"
+          ln -s /Applications "${DMG_DIR}/Applications"
           hdiutil create -volname "${APP_DESKTOP_NAME}" -srcfolder "${DMG_DIR}" -ov -format UDZO "${OUT_DMG}"
           rm -rf "${DMG_DIR}"
 
@@ -559,15 +615,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
-        with: { go-version: ${{ env.GO_VERSION }} }
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }} }
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Enforce npm version
         shell: powershell
@@ -638,61 +697,61 @@ jobs:
 
   publish:
     name: Publish GitHub Release
-    needs: [build-linux-arm64, build-linux-amd64, build-macos-arm64, build-macos-amd64, build-windows]
+    needs:
+      - build-linux-arm64
+      - build-linux-amd64
+      - build-macos-arm64
+      - build-macos-amd64
+      - build-windows
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with: { fetch-depth: 1 }
+        with:
+          fetch-depth: 1
 
       - name: Download Linux amd64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Linux-amd64-artifacts
-        if-no-files-found: ignore
-        continue-on-error: true
+          path: artifacts/Linux-amd64
 
       - name: Download Linux arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Linux-arm64-artifacts
-        if-no-files-found: ignore
-        continue-on-error: true
+          path: artifacts/Linux-arm64
 
       - name: Download macOS amd64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: macOS-amd64-artifacts
-        if-no-files-found: ignore
-        continue-on-error: true
+          path: artifacts/macOS-amd64
 
       - name: Download macOS arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: macOS-arm64-artifacts
-        if-no-files-found: ignore
-        continue-on-error: true
+          path: artifacts/macOS-arm64
 
       - name: Download Windows amd64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Windows-amd64-artifacts
-        if-no-files-found: ignore
-        continue-on-error: true
+          path: artifacts/Windows-amd64
 
       - name: Download Windows arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Windows-arm64-artifacts
-        if-no-files-found: ignore
-        continue-on-error: true
+          path: artifacts/Windows-arm64
 
       - name: Collect payload
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p release_assets
-          find . -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -path "./**/artifacts/**" -print0 | xargs -0 -I {} cp -f {} release_assets/ || true
+          find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 | xargs -0 -I {} cp -f {} release_assets/ || true
           if [ -f templates/default_templates.json ]; then cp templates/default_templates.json release_assets/; fi
           ls -la release_assets
 
