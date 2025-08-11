@@ -150,52 +150,53 @@ jobs:
           ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
 
+          # Skip if icns already exists
           if [ -f "$ICNS_PATH" ]; then
             echo "Existing .icns found at $ICNS_PATH. Skipping conversion."
+          elif [ ! -f "$ICON_PNG" ]; then
+            echo "Icon PNG not found at $ICON_PNG. Skipping icon conversion."
           else
-            if [ ! -f "$ICON_PNG" ]; then
-              echo "Icon PNG not found at $ICON_PNG. Skipping icon conversion."
-            else
-              W=$(sips -g pixelWidth "$ICON_PNG" | awk '/pixelWidth:/{print $2}')
-              H=$(sips -g pixelHeight "$ICON_PNG" | awk '/pixelHeight:/{print $2}')
-              echo "Source PNG size: ${W}x${H}"
-              if [ "$W" != "$H" ]; then
-                echo "Warning: icon PNG is not square; resizing to 1024x1024 may distort."
-              fi
-              if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then
-                echo "Resizing icon to 1024x1024 for proper iconset generation..."
-                sips -z 1024 1024 "$ICON_PNG" --out "build/appicon_1024.png" >/dev/null
-                ICON_PNG="build/appicon_1024.png"
-              fi
-
-              ICONSET="appicon.iconset"
-              rm -rf "$ICONSET"; mkdir -p "$ICONSET"
-
-              # 1x
-              sips -z 16 16     "$ICON_PNG" --out "$ICONSET/icon_16x16.png" >/dev/null
-              sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_32x32.png" >/dev/null
-              sips -z 128 128   "$ICON_PNG" --out "$ICONSET/icon_128x128.png" >/dev/null
-              sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_256x256.png" >/dev/null
-              sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_512x512.png" >/dev/null
-
-              # 2x
-              sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
-              sips -z 64 64     "$ICON_PNG" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
-              sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
-              sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
-              cp "$ICON_PNG" "$ICONSET/icon_512x512@2x.png"
-
-              # Control
-              for f in icon_16x16.png icon_16x16@2x.png icon_32x32.png icon_32x32@2x.png icon_128x128.png icon_128x128@2x.png icon_256x256.png icon_256x256@2x.png icon_512x512.png icon_512x512@2x.png; do
-                [ -f "$ICONSET/$f" ] || { echo "Missing icon size: $f"; ls -la "$ICONSET"; exit 1; }
-              done
-
-              # .icns
-              iconutil -c icns "$ICONSET" -o "$ICNS_PATH"
-              rm -rf "$ICONSET"
+            # Ensure 1024x1024 source
+            W=$(sips -g pixelWidth "$ICON_PNG" | awk '/pixelWidth:/{print $2}')
+            H=$(sips -g pixelHeight "$ICON_PNG" | awk '/pixelHeight:/{print $2}')
+            echo "Source PNG size: ${W}x${H}"
+            if [ "$W" != "$H" ]; then
+              echo "Warning: icon PNG is not square; resizing to 1024x1024 may distort."
             fi
+            if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then
+              echo "Resizing icon to 1024x1024..."
+              sips -z 1024 1024 "$ICON_PNG" --out "build/appicon_1024.png" >/dev/null
+              ICON_PNG="build/appicon_1024.png"
+            fi
+
+            ICONSET="appicon.iconset"
+            rm -rf "$ICONSET"; mkdir -p "$ICONSET"
+
+            # 1x sizes
+            sips -z 16 16     "$ICON_PNG" --out "$ICONSET/icon_16x16.png" >/dev/null
+            sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_32x32.png" >/dev/null
+            sips -z 128 128   "$ICON_PNG" --out "$ICONSET/icon_128x128.png" >/dev/null
+            sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_256x256.png" >/dev/null
+            sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_512x512.png" >/dev/null
+
+            # 2x sizes
+            sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+            sips -z 64 64     "$ICON_PNG" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+            sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
+            sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
+            cp "$ICON_PNG" "$ICONSET/icon_512x512@2x.png"
+
+            # Validate iconset
+            for f in icon_16x16.png icon_16x16@2x.png icon_32x32.png icon_32x32@2x.png icon_128x128.png icon_128x128@2x.png icon_256x256.png icon_256x256@2x.png icon_512x512.png icon_512x512@2x.png; do
+              [ -f "$ICONSET/$f" ] || { echo "Missing icon size: $f"; ls -la "$ICONSET"; exit 1; }
+            done
+
+            # Convert to .icns
+            iconutil -c icns "$ICONSET" -o "$ICNS_PATH"
+            rm -rf "$ICONSET"
           fi
 
+          # Ensure Info.plist points to icon
           PLIST="${APP_DIR}/Contents/Info.plist"
           if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then
             /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
@@ -205,49 +206,6 @@ jobs:
 
           echo "Icon setup done."
 
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          set -euo pipefail
-          APP_NAME="${APP_DESKTOP_NAME}.app"
-          ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then
-            APP_DIR="build/bin/${APP_NAME}"
-          elif [ -d "build/bin/${ALT_NAME}" ]; then
-            APP_DIR="build/bin/${ALT_NAME}"
-          else
-            echo "No .app found under build/bin"; ls -la build/bin || true; exit 1
-          fi
-
-          ICON_PNG="${ICON_PNG}"
-          ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
-          mkdir -p "$(dirname "$ICNS_PATH")"
-
-          if [ -f "$ICON_PNG" ]; then
-            TMPSET="iconset"
-            rm -rf "$TMPSET"; mkdir -p "$TMPSET"
-            sips -z 16 16     "$ICON_PNG" --out "$TMPSET/icon_16x16.png" >/dev/null
-            sips -z 32 32     "$ICON_PNG" --out "$TMPSET/icon_16x16@2x.png" >/dev/null
-            sips -z 32 32     "$ICON_PNG" --out "$TMPSET/icon_32x32.png" >/dev/null
-            sips -z 64 64     "$ICON_PNG" --out "$TMPSET/icon_32x32@2x.png" >/dev/null
-            sips -z 128 128   "$ICON_PNG" --out "$TMPSET/icon_128x128.png" >/dev/null
-            sips -z 256 256   "$ICON_PNG" --out "$TMPSET/icon_128x128@2x.png" >/dev/null
-            sips -z 256 256   "$ICON_PNG" --out "$TMPSET/icon_256x256.png" >/dev/null
-            sips -z 512 512   "$ICON_PNG" --out "$TMPSET/icon_256x256@2x.png" >/dev/null
-            sips -z 512 512   "$ICON_PNG" --out "$TMPSET/icon_512x512.png" >/dev/null
-            cp "$ICON_PNG" "$TMPSET/icon_512x512@2x.png" 2>/dev/null || true
-            iconutil -c icns "$TMPSET" -o "$ICNS_PATH"
-            rm -rf "$TMPSET"
-          fi
-
-          PLIST="${APP_DIR}/Contents/Info.plist"
-          if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then
-            /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
-          else
-            /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"
-          fi
-
-      # Import Developer ID Application cert from secrets (p12)
       - name: Import signing certificate (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -391,7 +349,7 @@ jobs:
           if (Test-Path "${{ env.WIN_EXE_ARM64 }}") { Copy-Item "${{ env.WIN_EXE_ARM64 }}" "release_assets\${{ env.PROJECT_NAME }}_windows_arm64.exe" -Force }
           Get-ChildItem "build\windows\dist" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
 
-      # ---------- Upload artifacts (per OS, fixed names) ----------
+      # ---------- Upload artifacts ----------
       - name: Upload Linux outputs
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
@@ -420,7 +378,6 @@ jobs:
 
     steps:
       - name: Download Linux artifacts
-      # each artifact downloads as a zip by default
         uses: actions/download-artifact@v4
         with:
           name: Linux-artifacts
