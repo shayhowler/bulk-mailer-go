@@ -21,123 +21,8 @@ env:
   ICON_PNG: "build/appicon.png"
 
 jobs:
-  build-linux-arm64:
-    name: Build Linux (arm64)
-    runs-on: ubuntu-22.04-arm64
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Enforce npm version
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm i -g npm@${{ env.NPM_VERSION }}
-          npm --version
-
-      - name: Install Linux deps (arm64)
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=30
-          sudo apt-get install -y --no-install-recommends \
-            libfuse2 build-essential pkg-config \
-            libgtk-3-dev libglib2.0-dev libgirepository1.0-dev gir1.2-gtk-3.0 \
-            libayatana-appindicator3-dev \
-            libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
-            libwebkit2gtk-4.1-dev || true
-          if [ -d "/usr/include/webkitgtk-4.0" ]; then
-            true
-          elif [ -d "/usr/include/webkitgtk-4.1" ]; then
-            sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0
-          fi
-          PKGDIR="/usr/lib/aarch64-linux-gnu/pkgconfig"; [ -d "$PKGDIR" ] || PKGDIR="/usr/lib/pkgconfig"
-          if [ -f "$PKGDIR/webkit2gtk-4.0.pc" ]; then
-            true
-          elif [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then
-            sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"
-          fi
-          sudo rm -rf /var/lib/apt/lists/*
-
-      - name: Install Wails CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
-          echo "${HOME}/go/bin" >> $GITHUB_PATH
-          which wails
-          wails version || true
-
-      - name: Frontend install
-        run: npm ci --prefix frontend
-
-      - name: Frontend build
-        run: npm run build --prefix frontend
-
-      - name: Wails build (arm64)
-        shell: bash
-        run: |
-          set -euo pipefail
-          export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
-          wails build
-
-      - name: Build AppImage (arm64)
-        shell: bash
-        run: |
-          set -euo pipefail
-          APPDIR="${{ env.PROJECT_NAME }}-arm64.AppDir"
-          BIN_PATH="build/bin/${{ env.PROJECT_NAME }}"
-          ICON_SRC="${{ env.ICON_PNG }}"
-          DESKTOP_FILE="${{ env.PROJECT_NAME }}.desktop"
-          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage -O appimagetool
-          chmod +x appimagetool
-          rm -rf "${APPDIR}"
-          mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${APPDIR}/usr/share/applications"
-          cp "${BIN_PATH}" "${APPDIR}/usr/bin/${{ env.PROJECT_NAME }}"
-          if [ -f "${ICON_SRC}" ]; then
-            cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
-            cp "${ICON_SRC}" "${APPDIR}/appicon.png"
-          fi
-          cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF
-          [Desktop Entry]
-          Type=Application
-          Name=${{ env.APP_DESKTOP_NAME }}
-          Exec=${{ env.PROJECT_NAME }}
-          Icon=appicon
-          Categories=Network;Email;
-          Comment=Professional Email Marketing Application
-          Terminal=false
-          EOF
-          cat > "${APPDIR}/AppRun" <<'EOF'
-          #!/bin/sh
-          HERE="$(dirname "$(readlink -f "$0")")"
-          export APPDIR="$HERE"
-          exec "$HERE/usr/bin/BulkMailerGo" "$@"
-          EOF
-          chmod +x "${APPDIR}/AppRun"
-          ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_arm64.AppImage"
-
-      - name: Upload ARM64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Linux-arm64-artifacts
-          path: ${{ env.PROJECT_NAME }}_linux_arm64.AppImage
-
-  build-linux-amd64:
-    name: Build Linux (amd64)
-    needs: [build-linux-arm64]
+  build-linux-arm64-docker:
+    name: Build Linux (arm64 via Docker)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -145,23 +30,118 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build arm64 tool image
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Dockerfile.arm64 <<'EOF'
+          FROM ubuntu:22.04
+          ENV DEBIAN_FRONTEND=noninteractive
+          RUN apt-get update && apt-get install -y --no-install-recommends \
+              curl wget git xz-utils ca-certificates build-essential pkg-config \
+              libgtk-3-dev libglib2.0-dev libgirepository1.0-dev gir1.2-gtk-3.0 \
+              libayatana-appindicator3-dev \
+              libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
+              libwebkit2gtk-4.1-dev libfuse2 \
+              && rm -rf /var/lib/apt/lists/*
+          ARG GO_VERSION=1.23.11
+          RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz -o /tmp/go.tgz \
+              && tar -C /usr/local -xzf /tmp/go.tgz && rm /tmp/go.tgz
+          ENV GOPATH=/root/go
+          ENV PATH="/usr/local/go/bin:${GOPATH}/bin:${PATH}"
+          ARG NODE_VERSION=24.5.0
+          RUN curl -fsSL https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-arm64.tar.xz -o /tmp/node.tar.xz \
+              && mkdir -p /opt/node \
+              && tar -C /opt/node -xJf /tmp/node.tar.xz --strip-components=1 \
+              && rm /tmp/node.tar.xz
+          ENV PATH="/opt/node/bin:${PATH}"
+          RUN wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage -O /usr/local/bin/appimagetool \
+              && chmod +x /usr/local/bin/appimagetool
+          RUN go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+          RUN if [ -d "/usr/include/webkitgtk-4.0" ]; then :; elif [ -d "/usr/include/webkitgtk-4.1" ]; then ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0; fi
+          RUN PKGDIR="/usr/lib/aarch64-linux-gnu/pkgconfig"; if [ -f "$PKGDIR/webkit2gtk-4.0.pc" ]; then :; elif [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"; fi
+          WORKDIR /workspace
+          EOF
+          docker buildx build --platform linux/arm64 -t bulk-mailer-arm64 -f Dockerfile.arm64 --build-arg GO_VERSION=${{ env.GO_VERSION }} --build-arg NODE_VERSION=${{ env.NODE_VERSION }} --load .
+
+      - name: Build and package inside arm64 container
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --platform linux/arm64 -v "$PWD":/workspace -w /workspace bulk-mailer-arm64 /bin/bash -lc '
+            set -euo pipefail
+            npm ci --prefix frontend
+            npm run build --prefix frontend
+            export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
+            wails build
+            APPDIR="${PROJECT_NAME:-BulkMailerGo}-arm64.AppDir"
+            BIN_PATH="build/bin/${PROJECT_NAME:-BulkMailerGo}"
+            ICON_SRC="${ICON_PNG:-build/appicon.png}"
+            DESKTOP_FILE="${PROJECT_NAME:-BulkMailerGo}.desktop"
+            rm -rf "${APPDIR}"
+            mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${APPDIR}/usr/share/applications"
+            cp "${BIN_PATH}" "${APPDIR}/usr/bin/${PROJECT_NAME:-BulkMailerGo}"
+            if [ -f "${ICON_SRC}" ]; then
+              cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
+              cp "${ICON_SRC}" "${APPDIR}/appicon.png"
+            fi
+            cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF2
+            [Desktop Entry]
+            Type=Application
+            Name=${APP_DESKTOP_NAME:-Bulk Mailer Go}
+            Exec=${PROJECT_NAME:-BulkMailerGo}
+            Icon=appicon
+            Categories=Network;Email;
+            Comment=Professional Email Marketing Application
+            Terminal=false
+            EOF2
+            cat > "${APPDIR}/AppRun" <<EOF2
+            #!/bin/sh
+            HERE="\$(dirname "\$(readlink -f "\$0")")"
+            export APPDIR="\$HERE"
+            exec "\$HERE/usr/bin/${PROJECT_NAME:-BulkMailerGo}" "\$@"
+            EOF2
+            chmod +x "${APPDIR}/AppRun"
+            appimagetool "${APPDIR}" "${PROJECT_NAME:-BulkMailerGo}_linux_aarch64.AppImage"
+          '
+
+      - name: Upload ARM64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux-arm64-artifacts
+          path: BulkMailerGo_linux_aarch64.AppImage
+
+  build-linux-amd64:
+    name: Build Linux (amd64 native)
+    needs: [build-linux-arm64-docker]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Enforce npm version
         shell: bash
         run: |
           set -euo pipefail
           npm i -g npm@${{ env.NPM_VERSION }}
           npm --version
-
       - name: Install Linux deps (amd64)
         shell: bash
         run: |
@@ -173,41 +153,26 @@ jobs:
             libayatana-appindicator3-dev \
             libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
             libwebkit2gtk-4.1-dev || true
-          if [ -d "/usr/include/webkitgtk-4.0" ]; then
-            true
-          elif [ -d "/usr/include/webkitgtk-4.1" ]; then
-            sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0
-          fi
+          if [ -d "/usr/include/webkitgtk-4.0" ]; then :; elif [ -d "/usr/include/webkitgtk-4.1" ]; then sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0; fi
           PKGDIR="/usr/lib/x86_64-linux-gnu/pkgconfig"; [ -d "$PKGDIR" ] || PKGDIR="/usr/lib/pkgconfig"
-          if [ -f "$PKGDIR/webkit2gtk-4.0.pc" ]; then
-            true
-          elif [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then
-            sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"
-          fi
+          if [ -f "$PKGDIR/webkit2gtk-4.0.pc" ]; then :; elif [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"; fi
           sudo rm -rf /var/lib/apt/lists/*
-
       - name: Install Wails CLI
         shell: bash
         run: |
           set -euo pipefail
           go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
           echo "${HOME}/go/bin" >> $GITHUB_PATH
-          which wails
-          wails version || true
-
       - name: Frontend install
         run: npm ci --prefix frontend
-
       - name: Frontend build
         run: npm run build --prefix frontend
-
       - name: Wails build (amd64)
         shell: bash
         run: |
           set -euo pipefail
           export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
           wails build
-
       - name: Build AppImage (amd64)
         shell: bash
         run: |
@@ -243,7 +208,6 @@ jobs:
           EOF
           chmod +x "${APPDIR}/AppRun"
           ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_amd64.AppImage"
-
       - name: Upload AMD64 artifact
         uses: actions/upload-artifact@v4
         with:
@@ -259,78 +223,55 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Enforce npm version
         run: |
           npm i -g npm@${{ env.NPM_VERSION }}
           npm --version
-
       - name: Install Wails CLI
         run: |
           go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
           echo "${HOME}/go/bin" >> $GITHUB_PATH
-          which wails
-          wails version || true
-
       - name: Frontend install
         run: npm ci --prefix frontend
-
       - name: Frontend build
         run: npm run build --prefix frontend
-
-      - name: Wails build (macOS arm64)
+      - name: Wails build (arm64)
         shell: bash
         run: |
           set -euo pipefail
           export GOOS=darwin
           export GOARCH=arm64
           wails build
-
       - name: Ensure .icns (arm64)
         shell: bash
         run: |
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then
-            APP_DIR="build/bin/${APP_NAME}"
-          elif [ -d "build/bin/${ALT_NAME}" ]; then
-            APP_DIR="build/bin/${ALT_NAME}"
-          else
-            echo "No .app found under build/bin"
-            ls -la build/bin || true
-            exit 1
-          fi
+          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
           ICON_IN="${ICON_PNG}"
           ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
           if [ ! -f "$ICNS_PATH" ] && [ -f "$ICON_IN" ]; then
             W=$(sips -g pixelWidth "$ICON_IN" | awk '/pixelWidth:/{print $2}')
             H=$(sips -g pixelHeight "$ICON_IN" | awk '/pixelHeight:/{print $2}')
-            if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then
-              sips -z 1024 1024 "$ICON_IN" --out "build/appicon_1024.png" >/dev/null
-              ICON_IN="build/appicon_1024.png"
-            fi
-            ICONSET="appicon.iconset"
-            rm -rf "$ICONSET"
-            mkdir -p "$ICONSET"
-            sips -z 16 16  "$ICON_IN" --out "$ICONSET/icon_16x16.png" >/dev/null
-            sips -z 32 32  "$ICON_IN" --out "$ICONSET/icon_32x32.png" >/dev/null
+            if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then sips -z 1024 1024 "$ICON_IN" --out "build/appicon_1024.png" >/dev/null; ICON_IN="build/appicon_1024.png"; fi
+            ICONSET="appicon.iconset"; rm -rf "$ICONSET"; mkdir -p "$ICONSET"
+            sips -z 16 16 "$ICON_IN" --out "$ICONSET/icon_16x16.png" >/dev/null
+            sips -z 32 32 "$ICON_IN" --out "$ICONSET/icon_32x32.png" >/dev/null
             sips -z 128 128 "$ICON_IN" --out "$ICONSET/icon_128x128.png" >/dev/null
             sips -z 256 256 "$ICON_IN" --out "$ICONSET/icon_256x256.png" >/dev/null
             sips -z 512 512 "$ICON_IN" --out "$ICONSET/icon_512x512.png" >/dev/null
-            sips -z 32 32   "$ICON_IN" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
-            sips -z 64 64   "$ICON_IN" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+            sips -z 32 32 "$ICON_IN" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+            sips -z 64 64 "$ICON_IN" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
             sips -z 256 256 "$ICON_IN" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
             sips -z 512 512 "$ICON_IN" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
             cp "$ICON_IN" "$ICONSET/icon_512x512@2x.png"
@@ -338,13 +279,8 @@ jobs:
             rm -rf "$ICONSET"
           fi
           PLIST="${APP_DIR}/Contents/Info.plist"
-          if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then
-            /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
-          else
-            /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"
-          fi
-
-      - name: Import signing certificate (macOS)
+          if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"; else /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"; fi
+      - name: Import signing certificate
         shell: bash
         env:
           P12_B64: ${{ secrets.DEVELOPER_ID_APP_CERT_BASE64 }}
@@ -359,51 +295,26 @@ jobs:
           echo "$P12_B64" | base64 --decode > app.p12
           security import app.p12 -k "$KEYCHAIN" -P "$P12_PASS" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN"
-          security find-identity -v -p codesigning || true
-
-      - name: Codesign .app (macOS arm64)
+      - name: Codesign .app (arm64)
         shell: bash
         env:
           SIGN_IDENTITY_APP: ${{ secrets.SIGN_IDENTITY_APP }}
         run: |
           set -euo pipefail
-          APP_NAME="${APP_DESKTOP_NAME}.app"
-          ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then
-            APP_DIR="build/bin/${APP_NAME}"
-          elif [ -d "build/bin/${ALT_NAME}" ]; then
-            APP_DIR="build/bin/${ALT_NAME}"
-          else
-            echo "No .app found under build/bin"
-            exit 1
-          fi
+          APP_NAME="${APP_DESKTOP_NAME}.app"; ALT_NAME="${PROJECT_NAME}.app"
+          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; exit 1; fi
           codesign --force --options runtime --deep -s "$SIGN_IDENTITY_APP" "$APP_DIR"
           codesign --verify --deep --strict "$APP_DIR"
-
       - name: Create DMG (arm64)
         shell: bash
         run: |
           set -euo pipefail
-          APP_NAME="${APP_DESKTOP_NAME}.app"
-          ALT_NAME="${PROJECT_NAME}.app"
-          OUT_DMG="${PROJECT_NAME}_macOS_arm64.dmg"
-          if [ -d "build/bin/${APP_NAME}" ]; then
-            SRC_APP="build/bin/${APP_NAME}"
-          elif [ -d "build/bin/${ALT_NAME}" ]; then
-            SRC_APP="build/bin/${ALT_NAME}"
-          else
-            echo "No .app found under build/bin"
-            ls -la build/bin || true
-            exit 1
-          fi
-          DMG_DIR="dmgroot"
-          rm -rf "${DMG_DIR}"
-          mkdir -p "${DMG_DIR}"
-          cp -R "${SRC_APP}" "${DMG_DIR}/"
-          ln -s /Applications "${DMG_DIR}/Applications"
+          APP_NAME="${APP_DESKTOP_NAME}.app"; ALT_NAME="${PROJECT_NAME}.app"; OUT_DMG="${PROJECT_NAME}_macOS_arm64.dmg"
+          if [ -d "build/bin/${APP_NAME}" ]; then SRC_APP="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}" ]; then SRC_APP="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
+          DMG_DIR="dmgroot"; rm -rf "${DMG_DIR}"; mkdir -p "${DMG_DIR}"
+          cp -R "${SRC_APP}" "${DMG_DIR}/"; ln -s /Applications "${DMG_DIR}/Applications"
           hdiutil create -volname "${APP_DESKTOP_NAME}" -srcfolder "${DMG_DIR}" -ov -format UDZO "${OUT_DMG}"
           rm -rf "${DMG_DIR}"
-
       - name: Notarize + staple (arm64)
         shell: bash
         env:
@@ -417,7 +328,6 @@ jobs:
           xcrun notarytool submit "$OUT_DMG" --key authkey.p8 --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID" --wait
           xcrun stapler staple "$OUT_DMG"
           rm -f authkey.p8
-
       - name: Upload macOS arm64 artifact
         uses: actions/upload-artifact@v4
         with:
@@ -433,78 +343,52 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Enforce npm version
         run: |
           npm i -g npm@${{ env.NPM_VERSION }}
           npm --version
-
       - name: Install Wails CLI
         run: |
           go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
           echo "${HOME}/go/bin" >> $GITHUB_PATH
-          which wails
-          wails version || true
-
       - name: Frontend install
         run: npm ci --prefix frontend
-
       - name: Frontend build
         run: npm run build --prefix frontend
-
-      - name: Wails build (macOS amd64)
+      - name: Wails build (amd64)
         shell: bash
         run: |
           set -euo pipefail
           export GOOS=darwin
           export GOARCH=amd64
           wails build
-
       - name: Ensure .icns (amd64)
         shell: bash
         run: |
           set -euo pipefail
-          APP_NAME="${APP_DESKTOP_NAME}.app"
-          ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then
-            APP_DIR="build/bin/${APP_NAME}"
-          elif [ -d "build/bin/${ALT_NAME}" ]; then
-            APP_DIR="build/bin/${ALT_NAME}"
-          else
-            echo "No .app found under build/bin"
-            ls -la build/bin || true
-            exit 1
-          fi
-          ICON_IN="${ICON_PNG}"
-          ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
+          APP_NAME="${APP_DESKTOP_NAME}.app"; ALT_NAME="${PROJECT_NAME}.app"
+          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
+          ICON_IN="${ICON_PNG}"; ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
           if [ ! -f "$ICNS_PATH" ] && [ -f "$ICON_IN" ]; then
-            W=$(sips -g pixelWidth "$ICON_IN" | awk '/pixelWidth:/{print $2}')
-            H=$(sips -g pixelHeight "$ICON_IN" | awk '/pixelHeight:/{print $2}')
-            if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then
-              sips -z 1024 1024 "$ICON_IN" --out "build/appicon_1024.png" >/dev/null
-              ICON_IN="build/appicon_1024.png"
-            fi
-            ICONSET="appicon.iconset"
-            rm -rf "$ICONSET"
-            mkdir -p "$ICONSET"
-            sips -z 16 16  "$ICON_IN" --out "$ICONSET/icon_16x16.png" >/dev/null
-            sips -z 32 32  "$ICON_IN" --out "$ICONSET/icon_32x32.png" >/dev/null
+            W=$(sips -g pixelWidth "$ICON_IN" | awk '/pixelWidth:/{print $2}'); H=$(sips -g pixelHeight "$ICON_IN" | awk '/pixelHeight:/{print $2}')
+            if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then sips -z 1024 1024 "$ICON_IN" --out "build/appicon_1024.png" >/dev/null; ICON_IN="build/appicon_1024.png"; fi
+            ICONSET="appicon.iconset"; rm -rf "$ICONSET"; mkdir -p "$ICONSET"
+            sips -z 16 16 "$ICON_IN" --out "$ICONSET/icon_16x16.png" >/dev/null
+            sips -z 32 32 "$ICON_IN" --out "$ICONSET/icon_32x32.png" >/dev/null
             sips -z 128 128 "$ICON_IN" --out "$ICONSET/icon_128x128.png" >/dev/null
             sips -z 256 256 "$ICON_IN" --out "$ICONSET/icon_256x256.png" >/dev/null
             sips -z 512 512 "$ICON_IN" --out "$ICONSET/icon_512x512.png" >/dev/null
-            sips -z 32 32   "$ICON_IN" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
-            sips -z 64 64   "$ICON_IN" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+            sips -z 32 32 "$ICON_IN" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+            sips -z 64 64 "$ICON_IN" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
             sips -z 256 256 "$ICON_IN" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
             sips -z 512 512 "$ICON_IN" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
             cp "$ICON_IN" "$ICONSET/icon_512x512@2x.png"
@@ -512,13 +396,8 @@ jobs:
             rm -rf "$ICONSET"
           fi
           PLIST="${APP_DIR}/Contents/Info.plist"
-          if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then
-            /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
-          else
-            /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"
-          fi
-
-      - name: Import signing certificate (macOS)
+          if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"; else /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"; fi
+      - name: Import signing certificate
         shell: bash
         env:
           P12_B64: ${{ secrets.DEVELOPER_ID_APP_CERT_BASE64 }}
@@ -533,51 +412,26 @@ jobs:
           echo "$P12_B64" | base64 --decode > app.p12
           security import app.p12 -k "$KEYCHAIN" -P "$P12_PASS" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN"
-          security find-identity -v -p codesigning || true
-
-      - name: Codesign .app (macOS amd64)
+      - name: Codesign .app (amd64)
         shell: bash
         env:
           SIGN_IDENTITY_APP: ${{ secrets.SIGN_IDENTITY_APP }}
         run: |
           set -euo pipefail
-          APP_NAME="${APP_DESKTOP_NAME}.app"
-          ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then
-            APP_DIR="build/bin/${APP_NAME}"
-          elif [ -d "build/bin/${ALT_NAME}" ]; then
-            APP_DIR="build/bin/${ALT_NAME}"
-          else
-            echo "No .app found under build/bin"
-            exit 1
-          fi
+          APP_NAME="${APP_DESKTOP_NAME}.app"; ALT_NAME="${PROJECT_NAME}.app"
+          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; exit 1; fi
           codesign --force --options runtime --deep -s "$SIGN_IDENTITY_APP" "$APP_DIR"
           codesign --verify --deep --strict "$APP_DIR"
-
       - name: Create DMG (amd64)
         shell: bash
         run: |
           set -euo pipefail
-          APP_NAME="${APP_DESKTOP_NAME}.app"
-          ALT_NAME="${PROJECT_NAME}.app"
-          OUT_DMG="${PROJECT_NAME}_macOS_amd64.dmg"
-          if [ -d "build/bin/${APP_NAME}" ]; then
-            SRC_APP="build/bin/${APP_NAME}"
-          elif [ -d "build/bin/${ALT_NAME}" ]; then
-            SRC_APP="build/bin/${ALT_NAME}"
-          else
-            echo "No .app found under build/bin"
-            ls -la build/bin || true
-            exit 1
-          fi
-          DMG_DIR="dmgroot"
-          rm -rf "${DMG_DIR}"
-          mkdir -p "${DMG_DIR}"
-          cp -R "${SRC_APP}" "${DMG_DIR}/"
-          ln -s /Applications "${DMG_DIR}/Applications"
+          APP_NAME="${APP_DESKTOP_NAME}.app"; ALT_NAME="${PROJECT_NAME}.app"; OUT_DMG="${PROJECT_NAME}_macOS_amd64.dmg"
+          if [ -d "build/bin/${APP_NAME}" ]; then SRC_APP="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}" ]; then SRC_APP="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
+          DMG_DIR="dmgroot"; rm -rf "${DMG_DIR}"; mkdir -p "${DMG_DIR}"
+          cp -R "${SRC_APP}" "${DMG_DIR}/"; ln -s /Applications "${DMG_DIR}/Applications"
           hdiutil create -volname "${APP_DESKTOP_NAME}" -srcfolder "${DMG_DIR}" -ov -format UDZO "${OUT_DMG}"
           rm -rf "${DMG_DIR}"
-
       - name: Notarize + staple (amd64)
         shell: bash
         env:
@@ -591,7 +445,6 @@ jobs:
           xcrun notarytool submit "$OUT_DMG" --key authkey.p8 --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID" --wait
           xcrun stapler staple "$OUT_DMG"
           rm -f authkey.p8
-
       - name: Upload macOS amd64 artifact
         uses: actions/upload-artifact@v4
         with:
@@ -617,38 +470,31 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Enforce npm version
         shell: powershell
         run: |
           npm i -g npm@${{ env.NPM_VERSION }}
           npm --version
-
       - name: Install Wails CLI
         shell: powershell
         run: |
           go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
           "$HOME\go\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           wails version
-
       - name: Frontend install
         shell: powershell
         run: npm ci --prefix frontend
-
       - name: Frontend build
         shell: powershell
         run: npm run build --prefix frontend
-
       - name: Wails build (Windows ${{ matrix.arch }})
         shell: powershell
         env:
@@ -659,7 +505,6 @@ jobs:
           $env:GOOS = "${env:GOOS}"
           $env:GOARCH = "${env:GOARCH}"
           wails build
-
       - name: Stage EXE
         shell: powershell
         run: |
@@ -667,10 +512,8 @@ jobs:
           $out = "${{ matrix.out_exe }}"
           New-Item -ItemType Directory -Path (Split-Path $out) -Force | Out-Null
           Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" $out -Force
-
       - name: Setup NSIS
         run: choco install nsis -y
-
       - name: Build NSIS installer (${{ matrix.arch }})
         shell: powershell
         run: |
@@ -682,13 +525,11 @@ jobs:
           } else {
             & makensis "-DWORKSPACE=$ws" ".\build\windows\installer_arm64.nsi"
           }
-
       - name: Prepare outputs
         shell: powershell
         run: |
           New-Item -ItemType Directory -Path release_assets -Force | Out-Null
           Get-ChildItem "build\windows\dist" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
-
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -698,7 +539,7 @@ jobs:
   publish:
     name: Publish GitHub Release
     needs:
-      - build-linux-arm64
+      - build-linux-arm64-docker
       - build-linux-amd64
       - build-macos-arm64
       - build-macos-amd64
@@ -709,43 +550,36 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
       - name: Download Linux amd64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Linux-amd64-artifacts
           path: artifacts/Linux-amd64
-
       - name: Download Linux arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Linux-arm64-artifacts
           path: artifacts/Linux-arm64
-
       - name: Download macOS amd64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: macOS-amd64-artifacts
           path: artifacts/macOS-amd64
-
       - name: Download macOS arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: macOS-arm64-artifacts
           path: artifacts/macOS-arm64
-
       - name: Download Windows amd64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Windows-amd64-artifacts
           path: artifacts/Windows-amd64
-
       - name: Download Windows arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Windows-arm64-artifacts
           path: artifacts/Windows-arm64
-
       - name: Collect payload
         shell: bash
         run: |
@@ -754,7 +588,6 @@ jobs:
           find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 | xargs -0 -I {} cp -f {} release_assets/ || true
           if [ -f templates/default_templates.json ]; then cp templates/default_templates.json release_assets/; fi
           ls -la release_assets
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
