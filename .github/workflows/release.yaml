@@ -30,20 +30,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
       - name: Enforce npm version
         run: |
           npm i -g npm@${{ env.NPM_VERSION }}
           npm --version
+
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+          echo "${HOME}/go/bin" >> $GITHUB_PATH
 
       # Linux x86_64
       - name: Install Linux GUI deps
@@ -63,17 +69,23 @@ jobs:
           if [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then
             sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"
           fi
+
       - name: Frontend install (clean)
         run: npm ci --prefix frontend
+
       - name: Frontend build
         run: npm run build --prefix frontend
+
       - name: Wails build (Linux x86_64)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
           export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
+          which wails
+          wails version || true
           wails build
+
       - name: Build AppImage (Linux x86_64)
         if: runner.os == 'Linux'
         shell: bash
@@ -110,6 +122,7 @@ jobs:
           EOF
           chmod +x "${APPDIR}/AppRun"
           ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage"
+
       - name: Prepare outputs (Linux x86_64)
         if: runner.os == 'Linux'
         run: |
@@ -119,7 +132,11 @@ jobs:
       # macOS
       - name: Wails build (macOS)
         if: runner.os == 'macOS'
-        run: wails build
+        run: |
+          which wails
+          wails version || true
+          wails build
+
       - name: Ensure app icon (.icns) in bundle (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -156,7 +173,7 @@ jobs:
             /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
           else
             /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"
-          fi
+
       - name: Import signing certificate (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -174,6 +191,7 @@ jobs:
           security import app.p12 -k "$KEYCHAIN" -P "$P12_PASS" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN"
           security find-identity -v -p codesigning || true
+
       - name: Codesign .app (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -188,6 +206,7 @@ jobs:
           else echo "No .app found under build/bin"; exit 1; fi
           codesign --force --options runtime --deep -s "$SIGN_IDENTITY_APP" "$APP_DIR"
           codesign --verify --deep --strict "$APP_DIR"
+
       - name: Create macOS DMG
         if: runner.os == 'macOS'
         shell: bash
@@ -203,6 +222,7 @@ jobs:
           cp -R "${SRC_APP}" "${DMG_DIR}/"; ln -s /Applications "${DMG_DIR}/Applications"
           hdiutil create -volname "${APP_DESKTOP_NAME}" -srcfolder "${DMG_DIR}" -ov -format UDZO "${OUT_DMG}"
           rm -rf "${DMG_DIR}"
+
       - name: Notarize + staple DMG (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -217,6 +237,7 @@ jobs:
           xcrun notarytool submit "$OUT_DMG" --key authkey.p8 --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID" --wait
           xcrun stapler staple "$OUT_DMG"
           rm -f authkey.p8
+
       - name: Prepare outputs (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -234,9 +255,11 @@ jobs:
           wails build
           New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_X64 }}") -Force | Out-Null
           Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" "${{ env.WIN_EXE_X64 }}" -Force
+
       - name: Setup NSIS
         if: runner.os == 'Windows'
         run: choco install nsis -y
+
       - name: Build NSIS installer (x64)
         if: runner.os == 'Windows'
         shell: powershell
@@ -245,6 +268,7 @@ jobs:
           $ws = (Get-Location).Path
           New-Item -ItemType Directory -Path "build\windows\dist" -Force | Out-Null
           & makensis "-DWORKSPACE=$ws" ".\build\windows\installer_x64.nsi"
+
       - name: Build Windows ARM64 (Wails) and stage
         if: runner.os == 'Windows'
         shell: powershell
@@ -255,6 +279,7 @@ jobs:
           wails build
           New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_ARM64 }}") -Force | Out-Null
           Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" "${{ env.WIN_EXE_ARM64 }}" -Force
+
       - name: Build NSIS installer (ARM64)
         if: runner.os == 'Windows'
         shell: powershell
@@ -263,6 +288,7 @@ jobs:
           $ws = (Get-Location).Path
           New-Item -ItemType Directory -Path "build\windows\dist" -Force | Out-Null
           & makensis "-DWORKSPACE=$ws" ".\build\windows\installer_arm64.nsi"
+
       - name: Prepare outputs (Windows)
         if: runner.os == 'Windows'
         shell: powershell
@@ -277,12 +303,14 @@ jobs:
         with:
           name: Linux-artifacts
           path: release_assets/*
+
       - name: Upload macOS outputs
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: macOs-artifacts
           path: release_assets/*
+
       - name: Upload Windows outputs
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
@@ -315,6 +343,8 @@ jobs:
           FROM ubuntu:22.04
 
           ENV DEBIAN_FRONTEND=noninteractive
+
+          # Sistem bağımlılıkları
           RUN apt-get update && apt-get install -y \
               curl wget git xz-utils ca-certificates build-essential pkg-config \
               libgtk-3-dev libglib2.0-dev libgirepository1.0-dev gir1.2-gtk-3.0 \
@@ -323,11 +353,16 @@ jobs:
               libwebkit2gtk-4.1-dev \
               && rm -rf /var/lib/apt/lists/*
 
+          # Go kurulumu
           ARG GO_VERSION=1.23.11
           RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz -o /tmp/go.tgz \
               && tar -C /usr/local -xzf /tmp/go.tgz && rm /tmp/go.tgz
-          ENV PATH="/usr/local/go/bin:${PATH}"
 
+          # GOPATH ve PATH
+          ENV GOPATH=/root/go
+          ENV PATH="/usr/local/go/bin:${GOPATH}/bin:${PATH}"
+
+          # Node kurulumu
           ARG NODE_VERSION=24.5.0
           RUN curl -fsSL https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-arm64.tar.xz -o /tmp/node.tar.xz \
               && mkdir -p /opt/node \
@@ -335,38 +370,61 @@ jobs:
               && rm /tmp/node.tar.xz
           ENV PATH="/opt/node/bin:${PATH}"
 
+          # AppImage aracı (aarch64)
           RUN wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage -O /usr/local/bin/appimagetool \
               && chmod +x /usr/local/bin/appimagetool
 
+          # Wails CLI (PATH'e düşecek)
           RUN go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+          # Alternatif garanti yol (isterseniz yukarıyı yorumlayıp bunu açın):
+          # RUN GOBIN=/usr/local/bin go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 
           WORKDIR /workspace
           EOF
 
-          # --platform + --load: image host'a yüklenir
+          # ARM64 imajı derle ve host'a yükle
           docker buildx build --platform linux/arm64 -t bulk-mailer-arm64 -f Dockerfile.arm64 \
             --build-arg GO_VERSION=${{ env.GO_VERSION }} \
             --build-arg NODE_VERSION=${{ env.NODE_VERSION }} \
             --load .
 
-          # Artık image localde var -> docker run çalışır
+          # Host'tan repo'yu içeri mount edip derle
           docker run --rm --platform linux/arm64 -v "$PWD":/workspace -w /workspace bulk-mailer-arm64 /bin/bash -lc '
             set -euo pipefail
+
+            # Frontend
             npm ci --prefix frontend
             npm run build --prefix frontend
+
+            # aarch64 için pkg-config yolları
             export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
+
+            # Wails doğrulama
+            which wails
+            wails version || true
+
+            # (Opsiyonel) Go modları indir
+            go mod download
+
+            # Wails build
             wails build
+
+            # AppImage paketleme
             APPDIR="${PROJECT_NAME}-arm64.AppDir"
             BIN_PATH="build/bin/${PROJECT_NAME}"
             ICON_SRC="${ICON_PNG}"
             DESKTOP_FILE="${PROJECT_NAME}.desktop"
+
             rm -rf "${APPDIR}"
             mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${APPDIR}/usr/share/applications"
+
             cp "${BIN_PATH}" "${APPDIR}/usr/bin/${PROJECT_NAME}"
+
             if [ -f "${ICON_SRC}" ]; then
               cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
               cp "${ICON_SRC}" "${APPDIR}/appicon.png"
             fi
+
             cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF2
             [Desktop Entry]
             Type=Application
@@ -377,6 +435,7 @@ jobs:
             Comment=Professional Email Marketing Application
             Terminal=false
             EOF2
+
             cat > "${APPDIR}/AppRun" <<EOF2
             #!/bin/sh
             HERE="\$(dirname "\$(readlink -f "\$0")")"
@@ -384,6 +443,7 @@ jobs:
             exec "\$HERE/usr/bin/${PROJECT_NAME}" "\$@"
             EOF2
             chmod +x "${APPDIR}/AppRun"
+
             appimagetool "${APPDIR}" "${PROJECT_NAME}_linux_aarch64.AppImage"
           '
 
@@ -414,16 +474,19 @@ jobs:
         with:
           name: Linux-artifacts
           path: artifacts/Linux-x64
+
       - name: Download Linux ARM64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Linux-arm64-artifacts
           path: artifacts/Linux-arm64
+
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
           name: macOs-artifacts
           path: artifacts/macOS
+
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
