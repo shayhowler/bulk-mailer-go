@@ -1,11 +1,3 @@
-# =========================
-# File: .github/workflows/release.yml
-# Changes in this version:
-# - Adds Linux ARM64 (aarch64) AppImage alongside x86_64
-# - Publishes only NSIS installers for Windows (no raw .exe)
-# - Adds root-level templates/default_templates.json to Release assets
-# - Keeps your existing hidden user data locations intact (no change to app behavior)
-# =========================
 name: release
 
 on:
@@ -17,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  GO_VERSION: "1.23.x"
+  GO_VERSION: "1.23.11"
   NODE_VERSION: "24.5.0"
   NPM_VERSION: "11.5.1"
   PROJECT_NAME: "BulkMailerGo"
@@ -58,7 +50,7 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 
-      # ---------- Linux ----------
+      # ---------- Linux x86_64 ----------
       - name: Install Linux GUI deps
         if: runner.os == 'Linux'
         shell: bash
@@ -128,58 +120,11 @@ jobs:
           chmod +x "${APPDIR}/AppRun"
           ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage"
 
-      - name: Wails build (Linux ARM64)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          set -euo pipefail
-          export GOOS=linux
-          export GOARCH=arm64
-          wails build
-          mkdir -p build/bin/arm64
-          cp "build/bin/${{ env.PROJECT_NAME }}" "build/bin/arm64/${{ env.PROJECT_NAME }}"
-
-      - name: Build AppImage (Linux ARM64)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          set -euo pipefail
-          APPDIR_ARM="${{ env.PROJECT_NAME }}-arm64.AppDir"
-          BIN_PATH_ARM="build/bin/arm64/${{ env.PROJECT_NAME }}"
-          ICON_SRC="${{ env.ICON_PNG }}"
-          DESKTOP_FILE="${{ env.PROJECT_NAME }}.desktop"
-          rm -rf "${APPDIR_ARM}"
-          mkdir -p "${APPDIR_ARM}/usr/bin" "${APPDIR_ARM}/usr/share/icons/hicolor/256x256/apps" "${APPDIR_ARM}/usr/share/applications"
-          cp "${BIN_PATH_ARM}" "${APPDIR_ARM}/usr/bin/${{ env.PROJECT_NAME }}"
-          if [ -f "${ICON_SRC}" ]; then
-            cp "${ICON_SRC}" "${APPDIR_ARM}/usr/share/icons/hicolor/256x256/apps/appicon.png"
-            cp "${ICON_SRC}" "${APPDIR_ARM}/appicon.png"
-          fi
-          cat > "${APPDIR_ARM}/${DESKTOP_FILE}" <<EOF
-          [Desktop Entry]
-          Type=Application
-          Name=${{ env.APP_DESKTOP_NAME }}
-          Exec=${{ env.PROJECT_NAME }}
-          Icon=appicon
-          Categories=Network;Email;
-          Comment=Professional Email Marketing Application
-          Terminal=false
-          EOF
-          cat > "${APPDIR_ARM}/AppRun" <<'EOF'
-          #!/bin/sh
-          HERE="$(dirname "$(readlink -f "$0")")"
-          export APPDIR="$HERE"
-          exec "$HERE/usr/bin/BulkMailerGo" "$@"
-          EOF
-          chmod +x "${APPDIR_ARM}/AppRun"
-          ./appimagetool "${APPDIR_ARM}" "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage"
-
-      - name: Prepare outputs (Linux)
+      - name: Prepare outputs (Linux x86_64)
         if: runner.os == 'Linux'
         run: |
           mkdir -p release_assets
           [ -f "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage" ] && cp "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage" release_assets/ || true
-          [ -f "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage" ] && cp "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage" release_assets/ || true
 
       # ---------- macOS ----------
       - name: Wails build (macOS)
@@ -212,31 +157,22 @@ jobs:
           else
             W=$(sips -g pixelWidth "$ICON_PNG" | awk '/pixelWidth:/{print $2}')
             H=$(sips -g pixelHeight "$ICON_PNG" | awk '/pixelHeight:/{print $2}')
-            echo "Source PNG size: ${W}x${H}"
-            if [ "$W" != "$H" ]; then
-              echo "Warning: icon PNG is not square; resizing to 1024x1024 may distort."
-            fi
             if [ "$W" -ne 1024 ] || [ "$H" -ne 1024 ]; then
-              echo "Resizing icon to 1024x1024..."
               sips -z 1024 1024 "$ICON_PNG" --out "build/appicon_1024.png" >/dev/null
               ICON_PNG="build/appicon_1024.png"
             fi
-
             ICONSET="appicon.iconset"
             rm -rf "$ICONSET"; mkdir -p "$ICONSET"
-            sips -z 16 16     "$ICON_PNG" --out "$ICONSET/icon_16x16.png" >/dev/null
-            sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_32x32.png" >/dev/null
-            sips -z 128 128   "$ICON_PNG" --out "$ICONSET/icon_128x128.png" >/dev/null
-            sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_256x256.png" >/dev/null
-            sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_512x512.png" >/dev/null
-            sips -z 32 32     "$ICON_PNG" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
-            sips -z 64 64     "$ICON_PNG" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
-            sips -z 256 256   "$ICON_PNG" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
-            sips -z 512 512   "$ICON_PNG" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
+            sips -z 16 16   "$ICON_PNG" --out "$ICONSET/icon_16x16.png" >/dev/null
+            sips -z 32 32   "$ICON_PNG" --out "$ICONSET/icon_32x32.png" >/dev/null
+            sips -z 128 128 "$ICON_PNG" --out "$ICONSET/icon_128x128.png" >/dev/null
+            sips -z 256 256 "$ICON_PNG" --out "$ICONSET/icon_256x256.png" >/dev/null
+            sips -z 512 512 "$ICON_PNG" --out "$ICONSET/icon_512x512.png" >/dev/null
+            sips -z 32 32   "$ICON_PNG" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+            sips -z 64 64   "$ICON_PNG" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+            sips -z 256 256 "$ICON_PNG" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
+            sips -z 512 512 "$ICON_PNG" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
             cp "$ICON_PNG" "$ICONSET/icon_512x512@2x.png"
-            for f in icon_16x16.png icon_16x16@2x.png icon_32x32.png icon_32x32@2x.png icon_128x128.png icon_128x128@2x.png icon_256x256.png icon_256x256@2x.png icon_512x512.png icon_512x512@2x.png; do
-              [ -f "$ICONSET/$f" ] || { echo "Missing icon size: $f"; ls -la "$ICONSET"; exit 1; }
-            done
             iconutil -c icns "$ICONSET" -o "$ICNS_PATH"
             rm -rf "$ICONSET"
           fi
@@ -247,8 +183,6 @@ jobs:
           else
             /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string appicon" "$PLIST"
           fi
-
-          echo "Icon setup done."
 
       - name: Import signing certificate (macOS)
         if: runner.os == 'macOS'
@@ -344,7 +278,6 @@ jobs:
           wails build
           New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_X64 }}") -Force | Out-Null
           Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" "${{ env.WIN_EXE_X64 }}" -Force
-          Get-Item "${{ env.WIN_EXE_X64 }}" | Format-Table FullName,Length
 
       - name: Setup NSIS
         if: runner.os == 'Windows'
@@ -369,7 +302,6 @@ jobs:
           wails build
           New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_ARM64 }}") -Force | Out-Null
           Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" "${{ env.WIN_EXE_ARM64 }}" -Force
-          Get-Item "${{ env.WIN_EXE_ARM64 }}" | Format-Table FullName,Length
 
       - name: Build NSIS installer (ARM64)
         if: runner.os == 'Windows'
@@ -385,7 +317,7 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Path release_assets -Force | Out-Null
-          # Only NSIS installers from dist
+          # Only NSIS installers from dist (no raw exe)
           Get-ChildItem "build\windows\dist" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
 
       # ---------- Upload artifacts ----------
@@ -410,17 +342,132 @@ jobs:
           name: Windows-artifacts
           path: release_assets/*
 
-  publish:
-    name: Publish GitHub Release
-    needs: build
+  build-linux-arm64:
+    name: Build (linux/arm64 via Docker)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Linux artifacts
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build in arm64 container
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Dockerfile.arm64 <<'EOF'
+          FROM --platform=linux/arm64 ubuntu:22.04
+
+          ENV DEBIAN_FRONTEND=noninteractive
+          RUN apt-get update && apt-get install -y \
+              curl wget git xz-utils ca-certificates build-essential pkg-config \
+              libgtk-3-dev libglib2.0-dev libgirepository1.0-dev gir1.2-gtk-3.0 \
+              libayatana-appindicator3-dev \
+              libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
+              libwebkit2gtk-4.1-dev \
+              && rm -rf /var/lib/apt/lists/*
+
+          ARG GO_VERSION=1.23.11
+          RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz -o /tmp/go.tgz \
+              && tar -C /usr/local -xzf /tmp/go.tgz && rm /tmp/go.tgz
+          ENV PATH="/usr/local/go/bin:${PATH}"
+
+          ARG NODE_VERSION=24.5.0
+          RUN curl -fsSL https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-arm64.tar.xz -o /tmp/node.tar.xz \
+              && mkdir -p /opt/node \
+              && tar -C /opt/node -xJf /tmp/node.tar.xz --strip-components=1 \
+              && rm /tmp/node.tar.xz
+          ENV PATH="/opt/node/bin:${PATH}"
+
+          RUN wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage -O /usr/local/bin/appimagetool \
+              && chmod +x /usr/local/bin/appimagetool
+
+          RUN go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+
+          WORKDIR /workspace
+          EOF
+
+          docker buildx build --platform linux/arm64 -t bulk-mailer-arm64 -f Dockerfile.arm64 --build-arg GO_VERSION=${{ env.GO_VERSION }} --build-arg NODE_VERSION=${{ env.NODE_VERSION }} .
+          docker run --rm --platform linux/arm64 -v "$PWD":/workspace -w /workspace bulk-mailer-arm64 /bin/bash -lc '
+            set -euo pipefail
+            npm ci --prefix frontend
+            npm run build --prefix frontend
+            export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
+            wails build
+            APPDIR="${PROJECT_NAME}-arm64.AppDir"
+            BIN_PATH="build/bin/${PROJECT_NAME}"
+            ICON_SRC="${ICON_PNG}"
+            DESKTOP_FILE="${PROJECT_NAME}.desktop"
+            rm -rf "${APPDIR}"
+            mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${APPDIR}/usr/share/applications"
+            cp "${BIN_PATH}" "${APPDIR}/usr/bin/${PROJECT_NAME}"
+            if [ -f "${ICON_SRC}" ]; then
+              cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
+              cp "${ICON_SRC}" "${APPDIR}/appicon.png"
+            fi
+            cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF2
+            [Desktop Entry]
+            Type=Application
+            Name=${APP_DESKTOP_NAME}
+            Exec=${PROJECT_NAME}
+            Icon=appicon
+            Categories=Network;Email;
+            Comment=Professional Email Marketing Application
+            Terminal=false
+            EOF2
+            cat > "${APPDIR}/AppRun" <<EOF2
+            #!/bin/sh
+            HERE="\$(dirname "\$(readlink -f "\$0")")"
+            export APPDIR="\$HERE"
+            exec "\$HERE/usr/bin/${PROJECT_NAME}" "\$@"
+            EOF2
+            chmod +x "${APPDIR}/AppRun"
+            appimagetool "${APPDIR}" "${PROJECT_NAME}_linux_aarch64.AppImage"
+          '
+
+      - name: Collect artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p release_assets
+          [ -f "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage" ] && cp "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage" release_assets/
+
+      - name: Upload ARM64 outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux-arm64-artifacts
+          path: release_assets/*
+
+  publish:
+    name: Publish GitHub Release
+    needs: [build, build-linux-arm64]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Download Linux artifacts (x86_64)
         uses: actions/download-artifact@v4
         with:
           name: Linux-artifacts
-          path: artifacts/Linux
+          path: artifacts/Linux-x64
+
+      - name: Download Linux ARM64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Linux-arm64-artifacts
+          path: artifacts/Linux-arm64
 
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
@@ -444,8 +491,7 @@ jobs:
             mkdir -p "$dest"
             unzip -o "$z" -d "$dest" >/dev/null
           done
-          find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 | \
-            xargs -0 -I {} cp -f {} release_assets/
+          find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 | xargs -0 -I {} cp -f {} release_assets/
           echo "Final payload:"
           ls -la release_assets
 
@@ -454,7 +500,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release_assets
-          #path: root-level templates/default_templates.json
+          # Repo-kök: templates/default_templates.json
           if [ -f templates/default_templates.json ]; then cp templates/default_templates.json release_assets/; fi
           ls -la release_assets
 
