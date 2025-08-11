@@ -12,19 +12,185 @@ env:
   GO_VERSION: "1.23.11"
   NODE_VERSION: "24.5.0"
   NPM_VERSION: "11.5.1"
+
   PROJECT_NAME: "BulkMailerGo"
   APP_DESKTOP_NAME: "Bulk Mailer Go"
   ICON_PNG: "build/appicon.png"
+
   WIN_EXE_X64: "build\\bin\\x64\\BulkMailerGo_x64.exe"
   WIN_EXE_ARM64: "build\\bin\\arm64\\BulkMailerGo_arm64.exe"
 
 jobs:
-  build:
-    name: Build (${{ matrix.os }})
+  # Linux builds on native runners: amd64 and arm64
+  build-linux:
+    name: Build Linux (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            pkgdir: /usr/lib/x86_64-linux-gnu/pkgconfig
+          - arch: arm64
+            runner: ubuntu-24.04-arm64
+            pkgdir: /usr/lib/aarch64-linux-gnu/pkgconfig
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enforce npm version
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm i -g npm@${{ env.NPM_VERSION }}
+          npm --version
+
+      - name: Install Linux GUI deps
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libfuse2 build-essential pkg-config \
+            libgtk-3-dev libglib2.0-dev libgirepository1.0-dev gir1.2-gtk-3.0 \
+            libayatana-appindicator3-dev \
+            libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
+            libwebkit2gtk-4.1-dev
+          # webkit2gtk-4.1 → 4.0 include symlink (both arches)
+          if [ -d "/usr/include/webkitgtk-4.1" ] && [ ! -e "/usr/include/webkitgtk-4.0" ]; then
+            sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0
+          fi
+          # webkit2gtk-4.1.pc → 4.0.pc symlink (arch-specific pkgconfig dir)
+          PKGDIR="${{ matrix.pkgdir }}"
+          [ -d "$PKGDIR" ] || PKGDIR="/usr/lib/pkgconfig"
+          if [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then
+            sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"
+          fi
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Install Wails CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+          echo "${HOME}/go/bin" >> $GITHUB_PATH
+
+      - name: Frontend install (clean)
+        run: npm ci --prefix frontend
+
+      - name: Frontend build
+        run: npm run build --prefix frontend
+
+      - name: Wails build (Linux)
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          # PKG_CONFIG_PATH per arch
+          if [ "${ARCH}" = "amd64" ]; then
+            export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
+          else
+            export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
+          fi
+          which wails
+          wails version || true
+          wails build
+
+      - name: Build AppImage (Linux)
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          APPDIR="${{ env.PROJECT_NAME }}-${ARCH}.AppDir"
+          BIN_PATH="build/bin/${{ env.PROJECT_NAME }}"
+          ICON_SRC="${{ env.ICON_PNG }}"
+          DESKTOP_FILE="${{ env.PROJECT_NAME }}.desktop"
+
+          # appimagetool per arch
+          if [ "${ARCH}" = "amd64" ]; then
+            APPIMG_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          else
+            APPIMG_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage"
+          fi
+          wget -q "${APPIMG_URL}" -O appimagetool
+          chmod +x appimagetool
+
+          rm -rf "${APPDIR}"
+          mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${APPDIR}/usr/share/applications"
+          cp "${BIN_PATH}" "${APPDIR}/usr/bin/${{ env.PROJECT_NAME }}"
+
+          if [ -f "${ICON_SRC}" ]; then
+            cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
+            cp "${ICON_SRC}" "${APPDIR}/appicon.png"
+          fi
+
+          cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF
+          [Desktop Entry]
+          Type=Application
+          Name=${{ env.APP_DESKTOP_NAME }}
+          Exec=${{ env.PROJECT_NAME }}
+          Icon=appicon
+          Categories=Network;Email;
+          Comment=Professional Email Marketing Application
+          Terminal=false
+          EOF
+
+          cat > "${APPDIR}/AppRun" <<'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          export APPDIR="$HERE"
+          exec "$HERE/usr/bin/BulkMailerGo" "$@"
+          EOF
+          chmod +x "${APPDIR}/AppRun"
+
+          OUT="${{ env.PROJECT_NAME }}_linux_${ARCH}.AppImage"
+          ./appimagetool "${APPDIR}" "${OUT}"
+
+      - name: Prepare outputs (Linux)
+        run: |
+          set -euo pipefail
+          mkdir -p release_assets
+          for f in "${{ env.PROJECT_NAME }}_linux_amd64.AppImage" "${{ env.PROJECT_NAME }}_linux_arm64.AppImage"; do
+            [ -f "$f" ] && cp "$f" release_assets/ || true
+          done
+
+      - name: Upload Linux outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux-${{ matrix.arch }}-artifacts
+          path: release_assets/*
+
+  # macOS builds on native runners: amd64 (Intel) and arm64 (Apple Silicon)
+  build-macos:
+    name: Build macOS (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-14
+            goos: darwin
+            goarch: arm64
+          - arch: amd64
+            runner: macos-13
+            goos: darwin
+            goarch: amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,98 +217,26 @@ jobs:
           go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
           echo "${HOME}/go/bin" >> $GITHUB_PATH
 
-      # Linux x86_64
-      - name: Install Linux GUI deps
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libfuse2 build-essential pkg-config \
-            libgtk-3-dev libglib2.0-dev libgirepository1.0-dev gir1.2-gtk-3.0 \
-            libayatana-appindicator3-dev \
-            libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
-            libwebkit2gtk-4.1-dev
-          # webkit2gtk-4.1 → 4.0 include ve .pc symlink (amd64)
-          if [ -d "/usr/include/webkitgtk-4.1" ] && [ ! -e "/usr/include/webkitgtk-4.0" ]; then
-            sudo ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0
-          fi
-          PKGDIR="/usr/lib/x86_64-linux-gnu/pkgconfig"; [ -d "$PKGDIR" ] || PKGDIR="/usr/lib/pkgconfig"
-          if [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then
-            sudo ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"
-          fi
-          sudo rm -rf /var/lib/apt/lists/*
-
       - name: Frontend install (clean)
         run: npm ci --prefix frontend
 
       - name: Frontend build
         run: npm run build --prefix frontend
 
-      - name: Wails build (Linux x86_64)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          set -euo pipefail
-          export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
-          which wails
-          wails version || true
-          wails build
-
-      - name: Build AppImage (Linux x86_64)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          set -euo pipefail
-          APPDIR="${{ env.PROJECT_NAME }}.AppDir"
-          BIN_PATH="build/bin/${{ env.PROJECT_NAME }}"
-          ICON_SRC="${{ env.ICON_PNG }}"
-          DESKTOP_FILE="${{ env.PROJECT_NAME }}.desktop"
-          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
-          chmod +x appimagetool
-          rm -rf "${APPDIR}"
-          mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${APPDIR}/usr/share/applications"
-          cp "${BIN_PATH}" "${APPDIR}/usr/bin/${{ env.PROJECT_NAME }}"
-          if [ -f "${ICON_SRC}" ]; then
-            cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
-            cp "${ICON_SRC}" "${APPDIR}/appicon.png"
-          fi
-          cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF
-          [Desktop Entry]
-          Type=Application
-          Name=${{ env.APP_DESKTOP_NAME }}
-          Exec=${{ env.PROJECT_NAME }}
-          Icon=appicon
-          Categories=Network;Email;
-          Comment=Professional Email Marketing Application
-          Terminal=false
-          EOF
-          cat > "${APPDIR}/AppRun" <<'EOF'
-          #!/bin/sh
-          HERE="$(dirname "$(readlink -f "$0")")"
-          export APPDIR="$HERE"
-          exec "$HERE/usr/bin/BulkMailerGo" "$@"
-          EOF
-          chmod +x "${APPDIR}/AppRun"
-          ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage"
-
-      - name: Prepare outputs (Linux x86_64)
-        if: runner.os == 'Linux'
-        run: |
-          mkdir -p release_assets
-          [ -f "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage" ] && cp "${{ env.PROJECT_NAME }}_linux_x86_64.AppImage" release_assets/ || true
-
-      # macOS
       - name: Wails build (macOS)
-        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
         run: |
+          set -euo pipefail
           which wails
           wails version || true
+          export GOOS="${GOOS}"
+          export GOARCH="${GOARCH}"
           wails build
 
       - name: Ensure app icon (.icns) in bundle (macOS)
-        if: runner.os == 'macOS'
         shell: bash
         run: |
           set -euo pipefail
@@ -157,9 +251,11 @@ jobs:
             ls -la build/bin || true
             exit 1
           fi
+
           ICON_IN="${ICON_PNG}"
           ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
+
           if [ ! -f "$ICNS_PATH" ] && [ -f "$ICON_IN" ]; then
             W=$(sips -g pixelWidth "$ICON_IN" | awk '/pixelWidth:/{print $2}')
             H=$(sips -g pixelHeight "$ICON_IN" | awk '/pixelHeight:/{print $2}')
@@ -170,19 +266,23 @@ jobs:
             ICONSET="appicon.iconset"
             rm -rf "$ICONSET"
             mkdir -p "$ICONSET"
-            sips -z 16 16 "$ICON_IN" --out "$ICONSET/icon_16x16.png" >/dev/null
-            sips -z 32 32 "$ICON_IN" --out "$ICONSET/icon_32x32.png" >/dev/null
+
+            sips -z 16 16  "$ICON_IN" --out "$ICONSET/icon_16x16.png" >/dev/null
+            sips -z 32 32  "$ICON_IN" --out "$ICONSET/icon_32x32.png" >/dev/null
             sips -z 128 128 "$ICON_IN" --out "$ICONSET/icon_128x128.png" >/dev/null
             sips -z 256 256 "$ICON_IN" --out "$ICONSET/icon_256x256.png" >/dev/null
             sips -z 512 512 "$ICON_IN" --out "$ICONSET/icon_512x512.png" >/dev/null
-            sips -z 32 32 "$ICON_IN" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
-            sips -z 64 64 "$ICON_IN" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+
+            sips -z 32 32   "$ICON_IN" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+            sips -z 64 64   "$ICON_IN" --out "$ICONSET/icon_32x32@2x.png" >/devnull
             sips -z 256 256 "$ICON_IN" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
             sips -z 512 512 "$ICON_IN" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
+
             cp "$ICON_IN" "$ICONSET/icon_512x512@2x.png"
             iconutil -c icns "$ICONSET" -o "$ICNS_PATH"
             rm -rf "$ICONSET"
           fi
+
           PLIST="${APP_DIR}/Contents/Info.plist"
           if /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$PLIST" >/dev/null 2>&1; then
             /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile appicon" "$PLIST"
@@ -191,7 +291,6 @@ jobs:
           fi
 
       - name: Import signing certificate (macOS)
-        if: runner.os == 'macOS'
         shell: bash
         env:
           P12_B64: ${{ secrets.DEVELOPER_ID_APP_CERT_BASE64 }}
@@ -209,7 +308,6 @@ jobs:
           security find-identity -v -p codesigning || true
 
       - name: Codesign .app (macOS)
-        if: runner.os == 'macOS'
         shell: bash
         env:
           SIGN_IDENTITY_APP: ${{ secrets.SIGN_IDENTITY_APP }}
@@ -229,13 +327,13 @@ jobs:
           codesign --verify --deep --strict "$APP_DIR"
 
       - name: Create macOS DMG
-        if: runner.os == 'macOS'
         shell: bash
         run: |
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          OUT_DMG="${PROJECT_NAME}_macOS.dmg"
+          OUT_DMG="${PROJECT_NAME}_macOS_${{ matrix.arch }}.dmg"
+
           if [ -d "build/bin/${APP_NAME}" ]; then
             SRC_APP="build/bin/${APP_NAME}"
           elif [ -d "build/bin/${ALT_NAME}" ]; then
@@ -245,6 +343,7 @@ jobs:
             ls -la build/bin || true
             exit 1
           fi
+
           DMG_DIR="dmgroot"
           rm -rf "${DMG_DIR}"
           mkdir -p "${DMG_DIR}"
@@ -254,7 +353,6 @@ jobs:
           rm -rf "${DMG_DIR}"
 
       - name: Notarize + staple DMG (macOS)
-        if: runner.os == 'macOS'
         shell: bash
         env:
           AC_API_KEY_ID: ${{ secrets.AC_API_KEY_ID }}
@@ -262,292 +360,180 @@ jobs:
           AC_API_KEY_BASE64: ${{ secrets.AC_API_KEY_BASE64 }}
         run: |
           set -euo pipefail
-          OUT_DMG="${PROJECT_NAME}_macOS.dmg"
+          OUT_DMG="${PROJECT_NAME}_macOS_${{ matrix.arch }}.dmg"
+          echo "$AC_API_KEY_BASE4" >/dev/null 2>&1 || true
           echo "$AC_API_KEY_BASE64" | base64 --decode > authkey.p8
           xcrun notarytool submit "$OUT_DMG" --key authkey.p8 --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID" --wait
           xcrun stapler staple "$OUT_DMG"
           rm -f authkey.p8
 
       - name: Prepare outputs (macOS)
-        if: runner.os == 'macOS'
         run: |
+          set -euo pipefail
           mkdir -p release_assets
-          [ -f "${{ env.PROJECT_NAME }}_macOS.dmg" ] && cp "${{ env.PROJECT_NAME }}_macOS.dmg" release_assets/ || true
-
-      # Windows
-      - name: Build Windows x64 (Wails) and stage
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $ErrorActionPreference = "Stop"
-          $env:GOOS  = "windows"
-          $env:GOARCH = "amd64"
-          wails build
-          New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_X64 }}") -Force | Out-Null
-          Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" "${{ env.WIN_EXE_X64 }}" -Force
-
-      - name: Setup NSIS
-        if: runner.os == 'Windows'
-        run: choco install nsis -y
-
-      - name: Build NSIS installer (x64)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $ErrorActionPreference = "Stop"
-          $ws = (Get-Location).Path
-          New-Item -ItemType Directory -Path "build\windows\dist" -Force | Out-Null
-          & makensis "-DWORKSPACE=$ws" ".\build\windows\installer_x64.nsi"
-
-      - name: Build Windows ARM64 (Wails) and stage
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $ErrorActionPreference = "Stop"
-          $env:GOOS  = "windows"
-          $env:GOARCH = "arm64"
-          wails build
-          New-Item -ItemType Directory -Path (Split-Path "${{ env.WIN_EXE_ARM64 }}") -Force | Out-Null
-          Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" "${{ env.WIN_EXE_ARM64 }}" -Force
-
-      - name: Build NSIS installer (ARM64)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $ErrorActionPreference = "Stop"
-          $ws = (Get-Location).Path
-          New-Item -ItemType Directory -Path "build\windows\dist" -Force | Out-Null
-          & makensis "-DWORKSPACE=$ws" ".\build\windows\installer_arm64.nsi"
-
-      - name: Prepare outputs (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Path release_assets -Force | Out-Null
-          Get-ChildItem "build\windows\dist" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
-
-      # Upload artifacts
-      - name: Upload Linux outputs
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Linux-artifacts
-          path: release_assets/*
+          [ -f "${{ env.PROJECT_NAME }}_macOS_${{ matrix.arch }}.dmg" ] && cp "${{ env.PROJECT_NAME }}_macOS_${{ matrix.arch }}.dmg" release_assets/ || true
 
       - name: Upload macOS outputs
-        if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: macOs-artifacts
+          name: macOS-${{ matrix.arch }}-artifacts
           path: release_assets/*
 
-      - name: Upload Windows outputs
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows-artifacts
-          path: release_assets/*
-
-  build-linux-arm64:
-    name: Build (linux/arm64 via Docker)
-    runs-on: ubuntu-latest
+  # Windows builds on native runners: amd64 and arm64
+  build-windows:
+    name: Build Windows (${{ matrix.arch }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            goarch: amd64
+            out_exe: ${{ env.WIN_EXE_X64 }}
+          - arch: arm64
+            goarch: arm64
+            out_exe: ${{ env.WIN_EXE_ARM64 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          platforms: arm64
+          go-version: ${{ env.GO_VERSION }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Build in arm64 container (with --load)
-        shell: bash
+      - name: Enforce npm version
+        shell: powershell
         run: |
-          set -euo pipefail
-          cat > Dockerfile.arm64 <<'EOF'
-          FROM ubuntu:22.04
+          npm i -g npm@${{ env.NPM_VERSION }}
+          npm --version
 
-          ENV DEBIAN_FRONTEND=noninteractive
-
-          # Sistem bağımlılıkları
-          RUN apt-get update && apt-get install -y --no-install-recommends \
-              curl wget git xz-utils ca-certificates build-essential pkg-config \
-              libgtk-3-dev libglib2.0-dev libgirepository1.0-dev gir1.2-gtk-3.0 \
-              libayatana-appindicator3-dev \
-              libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxrender-dev libxinerama-dev \
-              libwebkit2gtk-4.1-dev \
-              && rm -rf /var/lib/apt/lists/*
-
-          # Go kurulumu
-          ARG GO_VERSION=1.23.11
-          RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz -o /tmp/go.tgz \
-              && tar -C /usr/local -xzf /tmp/go.tgz && rm /tmp/go.tgz
-
-          # GOPATH ve PATH
-          ENV GOPATH=/root/go
-          ENV PATH="/usr/local/go/bin:${GOPATH}/bin:${PATH}"
-
-          # Node kurulumu
-          ARG NODE_VERSION=24.5.0
-          RUN curl -fsSL https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-arm64.tar.xz -o /tmp/node.tar.xz \
-              && mkdir -p /opt/node \
-              && tar -C /opt/node -xJf /tmp/node.tar.xz --strip-components=1 \
-              && rm /tmp/node.tar.xz
-          ENV PATH="/opt/node/bin:${PATH}"
-
-          # AppImage aracı (aarch64)
-          RUN wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage -O /usr/local/bin/appimagetool \
-              && chmod +x /usr/local/bin/appimagetool
-
-          # Wails CLI (PATH'e düşecek)
-          RUN go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
-          # Alternatif:
-          # RUN GOBIN=/usr/local/bin go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
-
-          # webkit2gtk-4.1 → 4.0 symlink (ARM64)
-          RUN if [ -d "/usr/include/webkitgtk-4.1" ] && [ ! -e "/usr/include/webkitgtk-4.0" ]; then ln -s /usr/include/webkitgtk-4.1 /usr/include/webkitgtk-4.0; fi
-          RUN PKGDIR="/usr/lib/aarch64-linux-gnu/pkgconfig"; \
-              if [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"; fi
-
-          WORKDIR /workspace
-          EOF
-
-          # ARM64 imajı derle ve host'a yükle
-          docker buildx build --platform linux/arm64 -t bulk-mailer-arm64 -f Dockerfile.arm64 \
-            --build-arg GO_VERSION=${{ env.GO_VERSION }} \
-            --build-arg NODE_VERSION=${{ env.NODE_VERSION }} \
-            --load .
-
-          # Host'tan repo'yu içeri mount edip derle
-          docker run --rm --platform linux/arm64 -v "$PWD":/workspace -w /workspace bulk-mailer-arm64 /bin/bash -lc '
-            set -euo pipefail
-
-            # Frontend
-            npm ci --prefix frontend
-            npm run build --prefix frontend
-
-            # aarch64 için pkg-config yolları
-            export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
-
-            # Wails doğrulama
-            which wails
-            wails version || true
-
-            # (Opsiyonel) Go modları indir
-            go mod download
-
-            # Wails build
-            wails build
-
-            # AppImage paketleme
-            APPDIR="${PROJECT_NAME}-arm64.AppDir"
-            BIN_PATH="build/bin/${PROJECT_NAME}"
-            ICON_SRC="${ICON_PNG}"
-            DESKTOP_FILE="${PROJECT_NAME}.desktop"
-
-            rm -rf "${APPDIR}"
-            mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${APPDIR}/usr/share/applications"
-
-            cp "${BIN_PATH}" "${APPDIR}/usr/bin/${PROJECT_NAME}"
-
-            if [ -f "${ICON_SRC}" ]; then
-              cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
-              cp "${ICON_SRC}" "${APPDIR}/appicon.png"
-            fi
-
-            cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF2
-            [Desktop Entry]
-            Type=Application
-            Name=${APP_DESKTOP_NAME}
-            Exec=${PROJECT_NAME}
-            Icon=appicon
-            Categories=Network;Email;
-            Comment=Professional Email Marketing Application
-            Terminal=false
-            EOF2
-
-            cat > "${APPDIR}/AppRun" <<EOF2
-            #!/bin/sh
-            HERE="\$(dirname "\$(readlink -f "\$0")")"
-            export APPDIR="\$HERE"
-            exec "\$HERE/usr/bin/${PROJECT_NAME}" "\$@"
-            EOF2
-            chmod +x "${APPDIR}/AppRun"
-
-            appimagetool "${APPDIR}" "${PROJECT_NAME}_linux_aarch64.AppImage"
-          '
-
-      - name: Collect artifacts
+      - name: Install Wails CLI
+        shell: powershell
         run: |
-          set -euo pipefail
-          mkdir -p release_assets
-          [ -f "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage" ] && cp "${{ env.PROJECT_NAME }}_linux_aarch64.AppImage" release_assets/
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+          "$HOME\go\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Upload ARM64 outputs
+      - name: Frontend install (clean)
+        shell: powershell
+        run: npm ci --prefix frontend
+
+      - name: Frontend build
+        shell: powershell
+        run: npm run build --prefix frontend
+
+      - name: Wails build (Windows)
+        shell: powershell
+        env:
+          GOOS: windows
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:GOOS = "${env:GOOS}"
+          $env:GOARCH = "${env:GOARCH}"
+          wails build
+
+      - name: Stage EXE
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $out = "${{ matrix.out_exe }}"
+          New-Item -ItemType Directory -Path (Split-Path $out) -Force | Out-Null
+          Copy-Item "build\bin\${{ env.PROJECT_NAME }}.exe" $out -Force
+
+      - name: Setup NSIS
+        run: choco install nsis -y
+
+      - name: Build NSIS installer (${{ matrix.arch }})
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ws = (Get-Location).Path
+          New-Item -ItemType Directory -Path "build\windows\dist" -Force | Out-Null
+          if ("${{ matrix.arch }}" -eq "amd64") {
+            & makensis "-DWORKSPACE=$ws" ".\build\windows\installer_x64.nsi"
+          } else {
+            & makensis "-DWORKSPACE=$ws" ".\build\windows\installer_arm64.nsi"
+          }
+
+      - name: Prepare outputs (Windows)
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path release_assets -Force | Out-Null
+          Get-ChildItem "build\windows\dist" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
+
+      - name: Upload Windows outputs
         uses: actions/upload-artifact@v4
         with:
-          name: Linux-arm64-artifacts
+          name: Windows-${{ matrix.arch }}-artifacts
           path: release_assets/*
 
   publish:
     name: Publish GitHub Release
-    needs: [build, build-linux-arm64]
-    runs-on: ubuntu-latest
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Download Linux artifacts (x86_64)
+      - name: Download Linux amd64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Linux-artifacts
-          path: artifacts/Linux-x64
+          name: Linux-amd64-artifacts
+          path: artifacts/Linux-amd64
 
-      - name: Download Linux ARM64 artifacts
+      - name: Download Linux arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Linux-arm64-artifacts
           path: artifacts/Linux-arm64
 
-      - name: Download macOS artifacts
+      - name: Download macOS amd64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: macOs-artifacts
-          path: artifacts/macOS
+          name: macOS-amd64-artifacts
+          path: artifacts/macOS-amd64
 
-      - name: Download Windows artifacts
+      - name: Download macOS arm64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Windows-artifacts
-          path: artifacts/Windows
+          name: macOS-arm64-artifacts
+          path: artifacts/macOS-arm64
 
-      - name: Unzip and collect binaries
+      - name: Download Windows amd64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Windows-amd64-artifacts
+          path: artifacts/Windows-amd64
+
+      - name: Download Windows arm64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Windows-arm64-artifacts
+          path: artifacts/Windows-arm64
+
+      - name: Collect final payload
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p release_assets
-          find artifacts -type f -name "*.zip" -print0 | while IFS= read -r -d '' z; do
-            dest="$(dirname "$z")/unzipped"
-            mkdir -p "$dest"
-            unzip -o "$z" -d "$dest" >/dev/null
-          done
-          find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 | xargs -0 -I {} cp -f {} release_assets/
+          # Copy platform outputs
+          find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 \
+            | xargs -0 -I {} cp -f {} release_assets/
+          # Optional templates
+          if [ -f templates/default_templates.json ]; then
+            cp templates/default_templates.json release_assets/
+          fi
           echo "Final payload:"
-          ls -la release_assets
-
-      - name: Include default templates.json
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p release_assets
-          if [ -f templates/default_templates.json ]; then cp templates/default_templates.json release_assets/; fi
           ls -la release_assets
 
       - name: Create GitHub Release
