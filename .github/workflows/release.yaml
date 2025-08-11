@@ -21,19 +21,14 @@ env:
   ICON_PNG: "build/appicon.png"
 
 jobs:
-  build-linux-arm64-docker:
-    name: Build Linux (arm64 via Docker)
-    runs-on: ubuntu-24.04
+  build-linux-arm64-docker-macos:
+    name: Build Linux (arm64 via Docker on macOS)
+    runs-on: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -70,6 +65,7 @@ jobs:
           RUN PKGDIR="/usr/lib/aarch64-linux-gnu/pkgconfig"; if [ -f "$PKGDIR/webkit2gtk-4.0.pc" ]; then :; elif [ -f "$PKGDIR/webkit2gtk-4.1.pc" ] && [ ! -e "$PKGDIR/webkit2gtk-4.0.pc" ]; then ln -s "$PKGDIR/webkit2gtk-4.1.pc" "$PKGDIR/webkit2gtk-4.0.pc"; fi
           WORKDIR /workspace
           EOF
+          docker buildx create --use --name builder || true
           docker buildx build --platform linux/arm64 -t bulk-mailer-arm64 -f Dockerfile.arm64 --build-arg GO_VERSION=${{ env.GO_VERSION }} --build-arg NODE_VERSION=${{ env.NODE_VERSION }} --load .
 
       - name: Build and package inside arm64 container
@@ -82,46 +78,65 @@ jobs:
             npm run build --prefix frontend
             export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}"
             wails build
+
             APPDIR="${PROJECT_NAME:-BulkMailerGo}-arm64.AppDir"
             BIN_PATH="build/bin/${PROJECT_NAME:-BulkMailerGo}"
             ICON_SRC="${ICON_PNG:-build/appicon.png}"
             DESKTOP_FILE="${PROJECT_NAME:-BulkMailerGo}.desktop"
+
             rm -rf "${APPDIR}"
             mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${APPDIR}/usr/share/applications"
             cp "${BIN_PATH}" "${APPDIR}/usr/bin/${PROJECT_NAME:-BulkMailerGo}"
+
             if [ -f "${ICON_SRC}" ]; then
               cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/appicon.png"
               cp "${ICON_SRC}" "${APPDIR}/appicon.png"
             fi
-            cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF2
-            [Desktop Entry]
-            Type=Application
-            Name=${APP_DESKTOP_NAME:-Bulk Mailer Go}
-            Exec=${PROJECT_NAME:-BulkMailerGo}
-            Icon=appicon
-            Categories=Network;Email;
-            Comment=Professional Email Marketing Application
-            Terminal=false
-            EOF2
-            cat > "${APPDIR}/AppRun" <<EOF2
-            #!/bin/sh
-            HERE="\$(dirname "\$(readlink -f "\$0")")"
-            export APPDIR="\$HERE"
-            exec "\$HERE/usr/bin/${PROJECT_NAME:-BulkMailerGo}" "\$@"
-            EOF2
-            chmod +x "${APPDIR}/AppRun"
-            appimagetool "${APPDIR}" "${PROJECT_NAME:-BulkMailerGo}_linux_aarch64.AppImage"
-          '
 
-      - name: Upload ARM64 artifact
+            cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF
+[Desktop Entry]
+Type=Application
+Name=${APP_DESKTOP_NAME:-Bulk Mailer Go}
+Exec=${PROJECT_NAME:-BulkMailerGo}
+Icon=appicon
+Categories=Network;Email;
+Comment=Professional Email Marketing Application
+Terminal=false
+EOF
+
+            cat > "${APPDIR}/AppRun" <<'EOF'
+#!/bin/sh
+HERE="$(dirname "$(readlink -f "$0")")"
+export APPDIR="$HERE"
+exec "$HERE/usr/bin/BulkMailerGo" "$@"
+EOF
+            chmod +x "${APPDIR}/AppRun"
+
+            OUT_STD="${PROJECT_NAME:-BulkMailerGo}_linux_aarch64.AppImage"
+            OUT_ALT="${PROJECT_NAME:-BulkMailerGo}_linux_aarch64.appimage"
+            set -x
+            appimagetool "${APPDIR}" "${OUT_STD}" || true
+            if [ ! -f "${OUT_STD}" ] && [ -f "${OUT_ALT}" ]; then
+              mv -f "${OUT_ALT}" "${OUT_STD}"
+            fi
+            if [ ! -f "${OUT_STD}" ]; then
+              echo "AppImage not created"
+              ls -la
+              exit 1
+            fi
+          '
+          test -f "BulkMailerGo_linux_aarch64.AppImage"
+
+      - name: Upload ARM64 artifact (fail if missing)
         uses: actions/upload-artifact@v4
         with:
           name: Linux-arm64-artifacts
           path: BulkMailerGo_linux_aarch64.AppImage
+          if-no-files-found: error
 
   build-linux-amd64:
     name: Build Linux (amd64 native)
-    needs: [build-linux-arm64-docker]
+    needs: [build-linux-arm64-docker-macos]
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -191,32 +206,33 @@ jobs:
             cp "${ICON_SRC}" "${APPDIR}/appicon.png"
           fi
           cat > "${APPDIR}/${DESKTOP_FILE}" <<EOF
-          [Desktop Entry]
-          Type=Application
-          Name=${{ env.APP_DESKTOP_NAME }}
-          Exec=${{ env.PROJECT_NAME }}
-          Icon=appicon
-          Categories=Network;Email;
-          Comment=Professional Email Marketing Application
-          Terminal=false
-          EOF
+[Desktop Entry]
+Type=Application
+Name=${{ env.APP_DESKTOP_NAME }}
+Exec=${{ env.PROJECT_NAME }}
+Icon=appicon
+Categories=Network;Email;
+Comment=Professional Email Marketing Application
+Terminal=false
+EOF
           cat > "${APPDIR}/AppRun" <<'EOF'
-          #!/bin/sh
-          HERE="$(dirname "$(readlink -f "$0")")"
-          export APPDIR="$HERE"
-          exec "$HERE/usr/bin/BulkMailerGo" "$@"
-          EOF
+#!/bin/sh
+HERE="$(dirname "$(readlink -f "$0")")"
+export APPDIR="$HERE"
+exec "$HERE/usr/bin/BulkMailerGo" "$@"
+EOF
           chmod +x "${APPDIR}/AppRun"
           ./appimagetool "${APPDIR}" "${{ env.PROJECT_NAME }}_linux_amd64.AppImage"
-      - name: Upload AMD64 artifact
+      - name: Upload AMD64 artifact (fail if missing)
         uses: actions/upload-artifact@v4
         with:
           name: Linux-amd64-artifacts
           path: ${{ env.PROJECT_NAME }}_linux_amd64.AppImage
+          if-no-files-found: error
 
   build-macos-arm64:
     name: Build macOS (arm64)
-    needs: [build-linux-amd64]
+    needs: [build-linux-arm64-docker-macos]
     runs-on: macos-14
     steps:
       - name: Checkout
@@ -256,7 +272,7 @@ jobs:
           set -euo pipefail
           APP_NAME="${APP_DESKTOP_NAME}.app"
           ALT_NAME="${PROJECT_NAME}.app"
-          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}" ]; then APP_DIR="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
+          if [ -d "build/bin/${APP_NAME}" ]; then APP_DIR="build/bin/${APP_NAME}"; elif [ -d "build/bin/${ALT_NAME}"]; then APP_DIR="build/bin/${ALT_NAME}"; else echo "No .app found under build/bin"; ls -la build/bin || true; exit 1; fi
           ICON_IN="${ICON_PNG}"
           ICNS_PATH="${APP_DIR}/Contents/Resources/appicon.icns"
           mkdir -p "$(dirname "$ICNS_PATH")"
@@ -328,15 +344,16 @@ jobs:
           xcrun notarytool submit "$OUT_DMG" --key authkey.p8 --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID" --wait
           xcrun stapler staple "$OUT_DMG"
           rm -f authkey.p8
-      - name: Upload macOS arm64 artifact
+      - name: Upload macOS arm64 artifact (fail if missing)
         uses: actions/upload-artifact@v4
         with:
           name: macOS-arm64-artifacts
           path: ${{ env.PROJECT_NAME }}_macOS_arm64.dmg
+          if-no-files-found: error
 
   build-macos-amd64:
     name: Build macOS (amd64)
-    needs: [build-macos-arm64]
+    needs: [build-linux-arm64-docker-macos]
     runs-on: macos-13
     steps:
       - name: Checkout
@@ -445,15 +462,16 @@ jobs:
           xcrun notarytool submit "$OUT_DMG" --key authkey.p8 --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID" --wait
           xcrun stapler staple "$OUT_DMG"
           rm -f authkey.p8
-      - name: Upload macOS amd64 artifact
+      - name: Upload macOS amd64 artifact (fail if missing)
         uses: actions/upload-artifact@v4
         with:
           name: macOS-amd64-artifacts
           path: ${{ env.PROJECT_NAME }}_macOS_amd64.dmg
+          if-no-files-found: error
 
   build-windows:
     name: Build Windows (amd64+arm64)
-    needs: [build-macos-amd64]
+    needs: [build-linux-arm64-docker-macos]
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -530,16 +548,17 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path release_assets -Force | Out-Null
           Get-ChildItem "build\windows\dist" -Filter "*.exe" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName release_assets\ -Force }
-      - name: Upload Windows artifacts
+      - name: Upload Windows artifacts (fail if missing)
         uses: actions/upload-artifact@v4
         with:
           name: Windows-${{ matrix.arch }}-artifacts
           path: release_assets/*
+          if-no-files-found: error
 
   publish:
     name: Publish GitHub Release
     needs:
-      - build-linux-arm64-docker
+      - build-linux-arm64-docker-macos
       - build-linux-amd64
       - build-macos-arm64
       - build-macos-amd64
@@ -550,44 +569,51 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: Download Linux amd64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Linux-amd64-artifacts
-          path: artifacts/Linux-amd64
+
       - name: Download Linux arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Linux-arm64-artifacts
           path: artifacts/Linux-arm64
-      - name: Download macOS amd64 artifacts
+
+      - name: Download Linux amd64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: macOS-amd64-artifacts
-          path: artifacts/macOS-amd64
+          name: Linux-amd64-artifacts
+          path: artifacts/Linux-amd64
+
       - name: Download macOS arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: macOS-arm64-artifacts
           path: artifacts/macOS-arm64
+
+      - name: Download macOS amd64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macOS-amd64-artifacts
+          path: artifacts/macOS-amd64
+
       - name: Download Windows amd64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Windows-amd64-artifacts
           path: artifacts/Windows-amd64
+
       - name: Download Windows arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Windows-arm64-artifacts
           path: artifacts/Windows-arm64
+
       - name: Collect payload
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p release_assets
-          find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 | xargs -0 -I {} cp -f {} release_assets/ || true
-          if [ -f templates/default_templates.json ]; then cp templates/default_templates.json release_assets/; fi
+          find artifacts -type f \( -iname "*.appimage" -o -iname "*.dmg" -o -iname "*.exe" \) -print0 | xargs -0 -I {} cp -f {} release_assets/
           ls -la release_assets
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
