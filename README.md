@@ -13,8 +13,6 @@ This application is a desktop tool designed for sending personalized emails to m
 
 **Note:** Outlook app password support is not provided and this feature will be removed in the future. Currently tested only with Gmail.
 
-[Türkçe README için buraya tıklayın](#türkçe)
-
 ---
 
 ## English
@@ -24,6 +22,8 @@ This application is a desktop tool designed for sending personalized emails to m
 Bulk Mailer Go is a simple desktop application for sending bulk emails using templates, built with Go and Wails. It allows matching templates to individual contacts for personalized messages (e.g., addressing by name).
 
 **Note:** Outlook app passwords are not supported and will be removed in future. Tested only with Gmail.
+
+[Türkçe README için buraya tıklayın](#türkçe)
 
 ### 🚀 Features
 
