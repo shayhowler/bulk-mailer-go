@@ -13,11 +13,11 @@ This application is a desktop tool designed for sending personalized emails to m
 
 **Note:** Outlook app password support is not provided and this feature will be removed in the future. Currently tested only with Gmail.
 
-[Türkçe README için buraya tıklayın](#🇹🇷-türkçe)
+[Türkçe README için buraya tıklayın](#türkçe)
 
 ---
 
-## 🇺🇸 English
+## English
 
 ### What is Bulk Mailer Go?
 
@@ -191,7 +191,7 @@ Use `{name}`, `{surname}`, `{company}` in templates for personalization. Map aut
 
 ---
 
-## 🇹🇷 Türkçe
+## Türkçe
 
 ### Bulk Mailer Go Nedir?
 
@@ -199,7 +199,7 @@ Bulk Mailer Go, Go programlama dili ve Wails framework kullanılarak geliştiril
 
 **Not:** Outlook app password desteği verilmiyor ve bu özellik ileride kaldırılacak. Şu an sadece Gmail ile test edildi.
 
-[Click here for the English README](#🇺🇸-english)
+[Click here for the English README](#english)
 
 ### 🚀 Özellikler
 
