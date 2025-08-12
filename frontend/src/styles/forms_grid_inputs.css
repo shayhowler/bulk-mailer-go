@@ -1,4 +1,6 @@
 /* ==== FORMS, GRID, INPUTS ==== */
+
+/* Form Container */
 .form-container {
     background: #34495e;
     padding: 25px;
@@ -8,15 +10,18 @@
     border: 1px solid #7f8c8d;
 }
 
+/* Form Grid Layout */
 .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
 }
 
+/* Form Groups */
 .form-group {
     margin-bottom: 20px;
 }
+
 .form-group label {
     display: block;
     margin-bottom: 8px;
@@ -24,36 +29,45 @@
     font-weight: 500;
     font-size: 14px;
 }
-.form-group input,
-.form-group select {
+
+/* Form Inputs - Common Styles */
+.form-group input {
     width: 100%;
     padding: 12px;
-    background: #2c3e50;
-    color: #ecf0f1;
     border: 2px solid #7f8c8d;
     border-radius: 8px;
     font-size: 14px;
     transition: all 0.3s ease;
 }
-.form-group input:focus,
-.form-group select:focus {
+
+/* Input Specific Styling */
+.form-group input {
+    background: #2c3e50;
+    color: #ecf0f1;
+}
+
+.form-group input:focus {
     outline: none;
     border-color: #3498db;
     box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
 }
+
 .form-group input[type="checkbox"] {
     width: auto;
     margin-right: 8px;
 }
 
+/* File Input */
 .file-input {
     display: flex;
     gap: 10px;
 }
+
 .file-input input {
     flex: 1;
 }
 
+/* Form Actions */
 .form-actions {
     display: flex;
     gap: 10px;
@@ -63,7 +77,7 @@
     border-top: 1px solid #7f8c8d;
 }
 
-/* Send Controls */
+/* Control Groups */
 .format-controls,
 .theme-controls {
     display: flex;
@@ -71,6 +85,7 @@
     margin-top: 5px;
 }
 
+/* Radio Labels */
 .radio-label {
     display: flex;
     align-items: center;
@@ -100,20 +115,21 @@
     color: #3498db;
 }
 
-/* Utility margins */
-.mt-10 { margin-top: 10px; }
-
-/* Inline fields row for side-by-side selects */
+/* Inline Fields Layout */
 .inline-fields {
     display: flex;
     gap: 20px;
     align-items: flex-end;
     flex-wrap: wrap;
 }
+
 .inline-fields .form-group {
     flex: 1 1 300px;
     margin-bottom: 0;
 }
+
+/* Utility Classes */
+.mt-10 { margin-top: 10px; }
 
 /* Responsive Design */
 @media (max-width: 768px) {

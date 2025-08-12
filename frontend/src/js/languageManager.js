@@ -60,14 +60,13 @@ const translations = {
         'accounts-smtp-header': 'SMTP Sunucusu',
         'accounts-port-header': 'Port',
         'accounts-actions-header': 'İşlemler',
-        'add-account-btn': '➕ Yeni Hesap Ekle',
+        'add-account-btn': '📧 Yeni Hesap Ekle',
         'account-edit-title': 'Hesap Düzenle',
         'provider-label': 'E-posta Sağlayıcısı:',
         'select-provider-option': 'Seç',
         'gmail-option': 'Gmail',
         'yandex-option': 'Yandex',
         'yahoo-option': 'Yahoo',
-        'outlook-option': 'Outlook',
         'custom-option': 'Özel',
         'account-name-label': 'Hesap Adı:',
         'account-email-label': 'E-posta:',
@@ -171,8 +170,9 @@ const translations = {
         'template-html-header': 'HTML',
         'template-language-header': 'Dil',
         'template-actions-header': 'İşlemler',
-        'add-template-btn': '➕ Yeni Şablon Ekle',
-        'template-edit-title': 'Şablon Düzenle',
+        'add-template-btn': '📝 Yeni Şablon Ekle',
+        'template-add-title': '📝 Yeni Şablon Ekle',
+        'template-edit-title': '✏️ Şablon Düzenle',
         'template-name-label': 'Şablon Adı:',
         'template-subject-label': 'Konu:',
         'template-content-label': 'İçerik:',
@@ -446,14 +446,13 @@ const translations = {
         'accounts-smtp-header': 'SMTP Server',
         'accounts-port-header': 'Port',
         'accounts-actions-header': 'Actions',
-        'add-account-btn': '➕ Add New Account',
+        'add-account-btn': '📧 Add New Account',
         'account-edit-title': 'Edit Account',
         'provider-label': 'Email Provider:',
         'select-provider-option': 'Select',
         'gmail-option': 'Gmail',
         'yandex-option': 'Yandex',
         'yahoo-option': 'Yahoo',
-        'outlook-option': 'Outlook',
         'custom-option': 'Custom',
         'account-name-label': 'Account Name:',
         'account-email-label': 'Email:',
@@ -556,8 +555,9 @@ const translations = {
         'template-content-header': 'Content',
         'template-language-header': 'Language',
         'template-actions-header': 'Actions',
-        'add-template-btn': '➕ Add New Template',
-        'template-edit-title': 'Edit Template',
+        'add-template-btn': '📝 Add New Template',
+        'template-add-title': '📝 Add New Template',
+        'template-edit-title': '✏️ Edit Template',
         'template-name-label': 'Template Name:',
         'template-subject-label': 'Subject:',
         'template-content-label': 'Content:',
@@ -935,6 +935,9 @@ function updateDynamicContent() {
     // Update theme buttons
     updateThemeButtons();
 
+    // Update template form title based on current state
+    updateTemplateFormTitle();
+
     // Update attachment empty state text without reload
     const attachmentList = document.getElementById('attachment-list');
     if (attachmentList) {
@@ -967,6 +970,24 @@ function updateDynamicContent() {
     
     // Update log cards dynamically
     updateLogCardsLanguage();
+}
+
+// Update template form title based on current state
+function updateTemplateFormTitle() {
+    const editTitle = document.getElementById('template-edit-title');
+    if (editTitle) {
+        // Check if we're editing an existing template or adding a new one
+        const deleteBtn = document.getElementById('delete-template-btn');
+        const isEditing = deleteBtn && deleteBtn.style.display !== 'none';
+        
+        if (isEditing) {
+            // We're editing an existing template
+            editTitle.textContent = getText('template-edit-title');
+        } else {
+            // We're adding a new template
+            editTitle.textContent = getText('template-add-title');
+        }
+    }
 }
 
 // Update theme buttons based on current theme

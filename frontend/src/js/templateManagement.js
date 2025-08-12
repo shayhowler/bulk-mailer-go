@@ -93,6 +93,13 @@ export function showTemplateForm() {
     resetTemplateForm();
     document.getElementById('template-form').classList.remove('hidden');
     document.getElementById('delete-template-btn').style.display = 'none';
+    
+    // Set title for new template
+    const editTitle = document.getElementById('template-edit-title');
+    if (editTitle) {
+        editTitle.textContent = window.getText ? window.getText('template-add-title') : '📝 Yeni Şablon Ekle';
+    }
+    
     // Default language to current UI language
     const currentLang = getCurrentLanguage();
     document.getElementById('template-language').value = currentLang;
@@ -115,12 +122,25 @@ export function resetTemplateForm() {
     // HTML only mode
     const preview = document.getElementById('template-preview');
     if (preview) preview.innerHTML = '';
+    
+    // Reset title to default
+    const editTitle = document.getElementById('template-edit-title');
+    if (editTitle) {
+        editTitle.textContent = window.getText ? window.getText('template-add-title') : '📝 Yeni Şablon Ekle';
+    }
 }
 
 export async function editTemplate(name) {
     const template = state.templates.find(t => t.name === name);
     if (template) {
         document.getElementById('template-form').classList.remove('hidden');
+        
+        // Set title for editing template
+        const editTitle = document.getElementById('template-edit-title');
+        if (editTitle) {
+            editTitle.textContent = window.getText ? window.getText('template-edit-title') : '✏️ Şablon Düzenle';
+        }
+        
         document.getElementById('template-name').value = template.name;
         document.getElementById('template-subject').value = template.subject;
         // Set language only if template has a valid language

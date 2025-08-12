@@ -21,12 +21,7 @@ body {
     z-index: 1001;
 }
 
-.language-selector {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 1002;
-}
+
 
 #app {
     display: flex;

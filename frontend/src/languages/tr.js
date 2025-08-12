@@ -12,7 +12,7 @@ export const tr = {
     // Accounts
     accounts: {
         title: "📧 E-posta Hesapları",
-        addNew: "➕ Yeni Hesap Ekle",
+        addNew: "📧 Yeni Hesap Ekle",
         edit: "Hesap Düzenle",
         name: "Ad",
         email: "E-posta",
@@ -66,7 +66,7 @@ export const tr = {
     // Templates
     templates: {
         title: "📜 E-posta Şablonları",
-        addNew: "➕ Yeni Şablon Ekle",
+        addNew: "📝 Yeni Şablon Ekle",
         edit: "Şablon Düzenle",
         name: "Ad",
         namePlaceholder: "Şablon adı",
@@ -206,7 +206,6 @@ export const tr = {
         gmail: "Gmail",
         yandex: "Yandex", 
         yahoo: "Yahoo",
-        outlook: "Outlook",
         custom: "Özel",
         özel: "Özel"
     },

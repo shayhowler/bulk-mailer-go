@@ -9,6 +9,7 @@
 @import url('./preview_fullscreen.css');
 @import url('./tinymce-isolation.css');
 @import url('./language_selector.css');
+@import url('./cross_platform_dropdowns.css');
 
 /* Data Management Styles */
 /* Utility theme classes to support card/bg-base-* used in uninstall modal */

@@ -42,7 +42,6 @@ export function updateProvider() {
         'Gmail': { server: 'smtp.gmail.com', port: '587', tls: true },
         'Yandex': { server: 'smtp.yandex.com', port: '587', tls: true },
         'Yahoo': { server: 'smtp.mail.yahoo.com', port: '587', tls: true },
-        'Outlook': { server: 'smtp-mail.outlook.com', port: '587', tls: true },
         'Özel': { server: '', port: '', tls: false }
     };
     

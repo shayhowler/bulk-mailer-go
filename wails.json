@@ -2,30 +2,34 @@
   "$schema": "https://wails.io/schemas/config.v2.json",
   "name": "Bulk Mailer Go",
   "outputfilename": "BulkMailerGo",
+
   "productName": "Bulk Mailer Go",
   "companyName": "Burak Aksoy",
   "productVersion": "1.0.0",
-  "copyright": "© 2025 Burak Aksoy. All rights reserved.",
-  "comments": "Professional Email Marketing Application",
+  "comments": "Built with Wails. See LICENSE for terms.",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
+
   "author": {
     "name": "Burak Aksoy",
     "email": "146424623+shayhowler@users.noreply.github.com"
   },
+
   "info": {
     "companyName": "Burak Aksoy",
     "productName": "Bulk Mailer Go",
     "productVersion": "1.0.0",
-    "copyright": "© 2025 Burak Aksoy",
-    "comments": "Professional Email Marketing Application"
+    "comments": "See LICENSE for terms.",
+    "copyright": "© 2025 Burak Aksoy"
   },
+
   "build": {
     "appId": "com.bulkmailer.app",
     "productName": "Bulk Mailer Go",
     "copyright": "© 2025 Burak Aksoy",
+
     "mac": {
       "category": "public.app-category.productivity",
       "bundleId": "com.bulkmailer.app",
@@ -41,24 +45,26 @@
       "icon": "build/appicon.png",
       "minimumSystemVersion": "10.15"
     },
+
     "windows": {
       "icon": "build/icon.ico",
       "fileVersion": "1.0.0",
       "productVersion": "1.0.0"
     },
+
     "linux": {
       "icon": "build/appicon.png",
       "category": "Network;Email;",
       "maintainer": "Burak Aksoy"
     }
   },
+
   "nsis": {
     "name": "Bulk Mailer Go",
     "shortName": "BulkMailer",
     "companyName": "Burak Aksoy",
-    "description": "Professional Email Marketing Application",
+    "description": "Bulk Mailer Go — See LICENSE for terms.",
     "version": "1.0.0",
-    "copyright": "© 2025 Burak Aksoy",
     "license": "build/windows/LICENSE.txt",
     "customInstallDir": true,
     "createDesktopShortcut": true,
@@ -69,6 +75,7 @@
     "allowElevation": true,
     "runAfterFinish": true
   },
+
   "gardenifi": {
     "disableCache": true
   }

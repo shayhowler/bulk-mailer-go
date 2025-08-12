@@ -12,7 +12,7 @@ export const en = {
     // Accounts
     accounts: {
         title: "📧 Email Accounts",
-        addNew: "➕ Add New Account",
+        addNew: "📧 Add New Account",
         edit: "Edit Account",
         name: "Name",
         email: "Email",
@@ -66,7 +66,7 @@ export const en = {
     // Templates
     templates: {
         title: "📜 Email Templates",
-        addNew: "➕ Add New Template",
+        addNew: "📝 Add New Template",
         edit: "Edit Template",
         name: "Name",
         namePlaceholder: "Template name",
@@ -205,7 +205,6 @@ export const en = {
         gmail: "Gmail",
         yandex: "Yandex", 
         yahoo: "Yahoo",
-        outlook: "Outlook",
         custom: "Custom",
         özel: "Custom"
     },

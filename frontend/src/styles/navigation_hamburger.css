@@ -22,27 +22,7 @@
 }
 
 /* ==== LANGUAGE SELECTOR ==== */
-#language-select {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 1001;
-    padding: 12px;
-    background: #34495e;
-    color: #ecf0f1;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#language-select:hover {
-    background: #3498db;
-    transform: scale(1.1);
-    box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
-}
+/* Language selector styles moved to language_selector.css for consistency */
 
 /* ==== CONTENT ==== */
 #content {
