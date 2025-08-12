@@ -12,9 +12,9 @@ function ensureTiny() {
   return new Promise((resolve, reject) => {
     if (window.tinymce) return resolve(window.tinymce);
     const s = document.createElement('script');
-    s.src = '/tinymce/tinymce.min.js';
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tinymce/8.0.1/tinymce.min.js';
     s.onload = () => resolve(window.tinymce);
-    s.onerror = () => reject(new Error('TinyMCE not found under /public/tinymce'));
+    s.onerror = () => reject(new Error('Failed to load TinyMCE from CDN'));
     document.head.appendChild(s);
   });
 }
@@ -47,11 +47,11 @@ function baseConfig(id, theme, type) {
     // Use TinyMCE's built-in theme system
     skin: theme === 'dark' ? 'oxide-dark' : 'oxide',
     content_css: theme === 'dark' ? 'dark' : 'default',
-    base_url: '/tinymce',
+    base_url: 'https://cdnjs.cloudflare.com/ajax/libs/tinymce/8.0.1',
     suffix: '.min',
     // Try to use language pack if present; otherwise TinyMCE falls back to English
     language: demoLang === 'tr' ? 'tr' : 'en',
-    language_url: demoLang === 'tr' ? '/tinymce/langs/tr.js' : undefined,
+    language_url: demoLang === 'tr' ? 'https://cdn.tiny.cloud/1/no-api-key/tinymce/8/langs/tr.js' : undefined,
     file_picker_callback: (callback, value, meta) => {
       if (meta.filetype === 'file') callback('https://www.google.com/logos/google.jpg', { text: 'My text' });
       if (meta.filetype === 'image') callback('https://www.google.com/logos/google.jpg', { alt: 'My alt text' });

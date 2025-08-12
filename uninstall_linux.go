@@ -31,13 +31,17 @@ func (a *App) removeSelfWithOSScript() string {
 	execPath, _ := os.Executable()
 	homeDir, _ := os.UserHomeDir()
 
-	// User data paths
+	// User-scoped data (lowercase namespace)
 	configDir := filepath.Join(homeDir, ".config", AppLinuxName)
 	cacheDir := filepath.Join(homeDir, ".cache", AppLinuxName)
 
+	// Additional locations to remove (Title-cased namespace, as requested)
+	shareAppDir := filepath.Join(homeDir, ".local", "share", "BulkMailerGo")
+	cacheAppDir := filepath.Join(homeDir, ".cache", "BulkMailerGo")
+
 	// Desktop integration paths
 	desktopUser := filepath.Join(homeDir, ".local", "share", "applications", DesktopFileName)
-	iconUserBase := filepath.Join(homeDir, ".local", "share", "icons", "hicolor") // will search all sizes under this root
+	iconUserBase := filepath.Join(homeDir, ".local", "share", "icons", "hicolor") // search all sizes under this root
 	autostartFile := filepath.Join(homeDir, ".config", "autostart", AutostartFileName)
 
 	// Optional systemd user unit
@@ -46,8 +50,7 @@ func (a *App) removeSelfWithOSScript() string {
 	// For AppImage runs, APPIMAGE env may contain the actual AppImage path
 	appImagePath := os.Getenv("APPIMAGE")
 
-	// Use %q to safely quote paths; number of %q matches number of args exactly.
-	// Includes a smart wait loop (~10s max) instead of a fixed sleep 2.
+	// Build uninstall bash script content
 	scriptContent := fmt.Sprintf(`#!/usr/bin/env bash
 set -euo pipefail
 
@@ -82,7 +85,11 @@ if [ -n "$APPIMAGE_PATH" ] && [ -f "$APPIMAGE_PATH" ]; then
   rm -f "$APPIMAGE_PATH" || true
 fi
 
-# Remove user data
+# Remove user data (lowercase namespace)
+rm -rf %q || true
+rm -rf %q || true
+
+# Remove additional app data (Title-cased namespace)
 rm -rf %q || true
 rm -rf %q || true
 
@@ -113,16 +120,15 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1 && [ -d "${XDG_DATA_HOME:-$H
   gtk-update-icon-cache -f -t "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor" 2>/dev/null || true
 fi
 
-# Remove additional logs if you generate any (customize as needed)
-# rm -f "$HOME/.local/share/%s/"*.log 2>/dev/null || true
-
 # Delete this uninstall script
 rm -f "$0" || true
 `,
 		// Top variables
 		execPath, appImagePath,
-		// User data
+		// User data (lowercase)
 		configDir, cacheDir,
+		// Additional locations (Title-cased name)
+		shareAppDir, cacheAppDir,
 		// Desktop entry
 		desktopUser,
 		// Icons (base dir, base dir again for find root, file name)
@@ -131,8 +137,6 @@ rm -f "$0" || true
 		autostartFile,
 		// systemd unit (stop/disable + unit file removal)
 		SystemdUnitName, SystemdUnitName, systemdUserUnit,
-		// logs namespace (uses AppLinuxName)
-		AppLinuxName,
 	)
 
 	tmpScript := filepath.Join(os.TempDir(), "uninstall_"+AppLinuxName+".sh")

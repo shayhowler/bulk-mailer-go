@@ -216,6 +216,27 @@ Bulk Mailer Go, Go programlama dili ve Wails framework kullanılarak geliştiril
 - **🔄 Veri Yönetimi**: Veri içe/dışa aktarma, şablon/hesap içe aktarma
 - **🗑️ Kendini Silme**: Uygulama kaldırma (macOS ve Windows'ta tam silme; Linux'ta .cache ve .local/share/BulkMailerGo kalır)
 
+---
+
+## 🇹🇷 Türkçe
+
+### Bulk Mailer Go Nedir?
+
+Bulk Mailer Go, profesyonel e-posta pazarlama kampanyaları için tasarlanmış güçlü bir masaüstü uygulamasıdır. Go programlama dili ve Wails framework kullanılarak geliştirilmiştir.
+
+### 🚀 Özellikler
+
+- **📧 Çoklu E-posta Hesabı Desteği**: Gmail, Yandex, Yahoo, Outlook ve özel SMTP sunucuları
+- **👥 Kişi Yönetimi**: SQLite, CSV ve Excel dosyalarından kişi içe aktarma
+- **📝 Şablon Sistemi**: Zengin metin editörü ile e-posta şablonları oluşturma
+- **🎨 Tema Desteği**: Açık/koyu tema seçenekleri
+- **🌍 Çoklu Dil**: Türkçe ve İngilizce dil desteği
+- **📎 Dosya Eki**: E-postalara dosya ekleme özelliği
+- **📊 Detaylı Loglar**: Gönderim işlemlerini takip etme
+- **⚙️ Gelişmiş Ayarlar**: Ülke, saat dilimi ve tarih formatı ayarları
+- **📤 Toplu Gönderim**: Binlerce e-postayı tek seferde gönderme
+- **🔍 Arama ve Filtreleme**: Kişileri ve şablonları filtreleme
+
 ### 📋 Sistem Gereksinimleri
 
 - **Go**: 1.23.0 veya üzeri
@@ -363,6 +384,242 @@ Uygulama sekme tabanlıdır. "Kişiler" sekmesi, en az bir hesap ekleyip "Hesapl
 ### 📞 Destek
 
 - **GitHub Issues**: [Proje sayfasında](https://github.com/shayhowler/bulk-mailer-go/issues) sorun bildirin
+
+### 📖 Kullanım Kılavuzu
+
+#### 1. Ayarlar (Settings)
+- **Ülke**: Bulunduğunuz ülkeyi seçin
+- **Saat Dilimi**: Yerel saat diliminizi ayarlayın
+- **Tarih Formatı**: 12 veya 24 saat formatını seçin
+- **Varsayılan Dil**: Uygulama dilini belirleyin
+
+#### 2. Hesap Yönetimi (Accounts)
+- **E-posta Hesabı Ekleme**:
+  - Sağlayıcı seçin (Gmail, Yandex, Yahoo, Outlook, Özel)
+  - Hesap adı, e-posta, şifre girin
+  - SMTP sunucu ve port bilgilerini girin
+  - TLS güvenliği için onay kutusunu işaretleyin
+
+#### 3. Kişi Yönetimi (Contacts)
+- **Veri Kaynağı Seçimi**:
+  - SQLite veritabanı
+  - CSV dosyası
+  - Excel dosyası
+- **Tablo/Sayfa Seçimi**: Veri kaynağındaki tabloyu seçin
+- **E-posta Sütunu**: E-posta adreslerinin bulunduğu sütunu belirleyin
+- **Kişi Filtreleme**: Geçerli ve geçersiz e-postaları görüntüleme
+
+#### 4. Şablon Yönetimi (Templates)
+- **Şablon Oluşturma**:
+  - Şablon adı ve konu girin
+  - Dil seçin (Türkçe/İngilizce)
+  - TinyMCE editör ile içerik oluşturun
+  - Placeholder'lar için `{değişken_adı}` formatını kullanın
+- **Şablon Önizleme**: Gönderim öncesi şablonu önizleyin
+- **Tema Değiştirme**: Açık/koyu tema arasında geçiş yapın
+
+#### 5. E-posta Gönderimi (Send)
+- **Gönderim Hesabı**: Kullanılacak e-posta hesabını seçin
+- **Şablon Seçimi**: Gönderilecek şablonu seçin
+- **Konu ve İçerik**: E-posta konusu ve içeriğini düzenleyin
+- **Dosya Eki**: Gerekli dosyaları ekleyin
+- **Placeholder Eşleştirme**: Şablon değişkenlerini kişi verileriyle eşleştirin
+- **Toplu Gönderim**: Seçili kişilere e-postaları gönderin
+
+#### 6. Log Yönetimi (Logs)
+- **Gönderim Logları**: Tüm e-posta gönderim işlemlerini takip edin
+- **Log Filtreleme**: Belirli tarih aralıklarında arama yapın
+- **Log Temizleme**: Eski logları silin
+
+### 🔧 Gelişmiş Özellikler
+
+#### Placeholder Sistemi
+Şablonlarda `{ad}`, `{soyad}`, `{şirket}` gibi değişkenler kullanarak kişiselleştirilmiş e-postalar oluşturun.
+
+#### Tema Sistemi
+- **Açık Tema**: Gündüz kullanımı için
+- **Koyu Tema**: Gece kullanımı için
+
+#### Veri Yönetimi
+- **Veri Dışa Aktarma**: Tüm verileri yedekleyin
+- **Veri İçe Aktarma**: Yedekten veri geri yükleyin
+- **Şablon İçe Aktarma**: Mevcut şablonları içe aktarın
+
+### 🚨 Güvenlik Notları
+
+- E-posta şifrelerinizi güvenli tutun
+- SMTP sunucu bilgilerinizi doğru girin
+- TLS güvenliği için onay kutusunu işaretleyin
+- Toplu e-posta gönderiminde spam filtrelerine dikkat edin
+
+### 🐛 Sorun Giderme
+
+#### Yaygın Sorunlar
+
+1. **E-posta Gönderilemiyor**:
+   - SMTP ayarlarını kontrol edin
+   - Şifre ve kullanıcı adını doğrulayın
+   - Port numarasını kontrol edin
+
+2. **Kişi İçe Aktarılamıyor**:
+   - Dosya formatını kontrol edin
+   - E-posta sütununu doğru seçin
+   - Dosya izinlerini kontrol edin
+
+3. **Uygulama Açılmıyor**:
+   - Go ve Node.js sürümlerini kontrol edin
+   - Bağımlılıkları yeniden yükleyin
+
+### 📞 Destek
+
+- **GitHub Issues**: [Proje sayfasında](https://github.com/yourusername/bulk-mailer-go/issues) sorun bildirin
+- **E-posta**: 146424623+shayhowler@users.noreply.github.com
+
+---
+
+## 🇺🇸 English
+
+### What is Bulk Mailer Go?
+
+Bulk Mailer Go is a powerful desktop application designed for professional email marketing campaigns. It's built using the Go programming language and Wails framework.
+
+### 🚀 Features
+
+- **📧 Multiple Email Account Support**: Gmail, Yandex, Yahoo, Outlook and custom SMTP servers
+- **👥 Contact Management**: Import contacts from SQLite, CSV and Excel files
+- **📝 Template System**: Create email templates with rich text editor
+- **🎨 Theme Support**: Light/dark theme options
+- **🌍 Multi-language**: Turkish and English language support
+- **📎 File Attachments**: Add files to emails
+- **📊 Detailed Logs**: Track sending operations
+- **⚙️ Advanced Settings**: Country, timezone and date format settings
+- **📤 Bulk Sending**: Send thousands of emails at once
+- **🔍 Search and Filtering**: Filter contacts and templates
+
+### 📋 System Requirements
+
+- **Go**: 1.23.0 or higher
+- **Node.js**: 24.5.0 or higher
+- **npm**: 11.5.1 or higher
+- **Operating System**: Windows, macOS, Linux
+
+### 🛠️ Installation
+
+#### 1. Clone the Project
+```bash
+git clone https://github.com/yourusername/bulk-mailer-go.git
+cd bulk-mailer-go
+```
+
+#### 2. Install Go Dependencies
+```bash
+go mod download
+```
+
+#### 3. Install Frontend Dependencies
+```bash
+cd frontend
+npm install
+```
+
+#### 4. Run the Application
+```bash
+# Development mode
+wails dev
+
+# Production build
+wails build
+```
+
+### 📖 User Guide
+
+#### 1. Settings
+- **Country**: Select your country
+- **Timezone**: Set your local timezone
+- **Date Format**: Choose 12 or 24 hour format
+- **Default Language**: Set application language
+
+#### 2. Account Management
+- **Adding Email Account**:
+  - Select provider (Gmail, Yandex, Yahoo, Outlook, Custom)
+  - Enter account name, email, password
+  - Enter SMTP server and port information
+  - Check TLS security checkbox
+
+#### 3. Contact Management
+- **Data Source Selection**:
+  - SQLite database
+  - CSV file
+  - Excel file
+- **Table/Sheet Selection**: Select table from data source
+- **Email Column**: Specify column containing email addresses
+- **Contact Filtering**: View valid and invalid emails
+
+#### 4. Template Management
+- **Creating Templates**:
+  - Enter template name and subject
+  - Select language (Turkish/English)
+  - Create content with TinyMCE editor
+  - Use `{variable_name}` format for placeholders
+- **Template Preview**: Preview template before sending
+- **Theme Switching**: Switch between light/dark themes
+
+#### 5. Email Sending
+- **Sending Account**: Select email account to use
+- **Template Selection**: Choose template to send
+- **Subject and Content**: Edit email subject and content
+- **File Attachments**: Add necessary files
+- **Placeholder Mapping**: Map template variables with contact data
+- **Bulk Sending**: Send emails to selected contacts
+
+#### 6. Log Management
+- **Sending Logs**: Track all email sending operations
+- **Log Filtering**: Search within specific date ranges
+- **Log Cleaning**: Delete old logs
+
+### 🔧 Advanced Features
+
+#### Placeholder System
+Use variables like `{name}`, `{surname}`, `{company}` in templates to create personalized emails.
+
+#### Theme System
+- **Light Theme**: For daytime use
+- **Dark Theme**: For nighttime use
+
+#### Data Management
+- **Data Export**: Backup all data
+- **Data Import**: Restore data from backup
+- **Template Import**: Import existing templates
+
+### 🚨 Security Notes
+
+- Keep your email passwords secure
+- Enter SMTP server information correctly
+- Check TLS security checkbox
+- Be careful with spam filters when sending bulk emails
+
+### 🐛 Troubleshooting
+
+#### Common Issues
+
+1. **Emails Not Sending**:
+   - Check SMTP settings
+   - Verify password and username
+   - Check port number
+
+2. **Contacts Not Importing**:
+   - Check file format
+   - Select email column correctly
+   - Check file permissions
+
+3. **Application Not Opening**:
+   - Check Go and Node.js versions
+   - Reinstall dependencies
+
+### 📞 Support
+
+- **GitHub Issues**: Report issues on [project page](https://github.com/shayhowler/bulk-mailer-go/issues)
+- **Email**: 146424623+shayhowler@users.noreply.github.com
 
 ---
 
