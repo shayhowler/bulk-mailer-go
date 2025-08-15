@@ -11,7 +11,7 @@
 
 This application is a desktop tool designed for sending personalized emails to multiple recipients using templates. It's not a professional marketing tool, but a practical solution for personal or small-scale use. By matching placeholders in templates with contact data, you can send the same message tailored to each recipient (e.g., addressing by name).
 
-**Note:** Outlook app password support is not provided and this feature will be removed in the future. Currently tested only with Gmail.
+**Note:** Outlook app password is not working because they replaced it with OAuth2. Currently tested only with Gmail.
 
 ---
 
@@ -38,14 +38,14 @@ Bulk Mailer Go is a simple desktop application for sending bulk emails using tem
 - **📤 Bulk Sending**: Send thousands at once; pause/continue/cancel; 90% accurate (tables not guaranteed)
 - **🔍 Search and Filtering**: Filter contacts and templates
 - **🔄 Data Management**: Import/export data, templates/accounts
-- **🗑️ Self-Uninstall**: Remove app (full on macOS/Windows; Linux may leave .cache or .local/share/BulkMailerGo)
+- **🗑️ Self-Uninstall**: Remove app
 
 ### 📋 System Requirements
 
 - **Go**: 1.23.0 or higher
 - **Node.js**: 24.5.0 or higher
 - **npm**: 11.5.1 or higher
-- **Operating System**: Windows, macOS, Linux (some issues on Linux, see Known Issues)
+- **Operating System**: Windows, macOS, Linux
 
 ### 🛠️ Installation
 
@@ -122,6 +122,7 @@ The app is tab-based. The "Contacts" tab stays inactive until you add at least o
 - Press "Continue" to proceed to "Templates" (optional after initial setup).
 
 #### 4. Template Management
+- You can download and import default templates from releases page.
 - "Add Template" to create.
 - Enter name, subject, language.
 - Edit content: Use placeholders (`{name}`, `{surname}`); add images/GIFs; change theme (light/dark, affects email color).
@@ -156,7 +157,7 @@ Use `{name}`, `{surname}`, `{company}` in templates for personalization. Map aut
 #### Data Management
 - **Export**: Backup all data.
 - **Import**: Restore from backup; import templates/accounts.
-- **Self-Uninstall**: From settings (full on macOS/Windows; Linux may leave .cache or .local/share/BulkMailerGo).
+- **Self-Uninstall**: From settings (full on macOS/Windows/Linux;).
 - Privacy: See PRIVACY.md
 - Attribution: See NOTICE.md
 
@@ -169,8 +170,6 @@ Use `{name}`, `{surname}`, `{company}` in templates for personalization. Map aut
 ### 🐛 Known Issues and Troubleshooting
 
 #### Known Issues
-- Dropdowns appear white on Linux (fix incoming).
-- Uninstall on Linux leaves .cache and .local/share/BulkMailerGo (resolved on macOS/Windows).
 - Sending 90% realistic; tables not guaranteed.
 
 #### Common Issues
@@ -198,7 +197,7 @@ Use `{name}`, `{surname}`, `{company}` in templates for personalization. Map aut
 
 Bulk Mailer Go, Go programlama dili ve Wails framework kullanılarak geliştirilmiş basit bir toplu e-posta gönderme uygulamasıdır. Kişiselleştirilmiş şablonlar ile birden fazla alıcıya e-posta göndermeyi kolaylaştırır.
 
-**Not:** Outlook app password desteği verilmiyor ve bu özellik ileride kaldırılacak. Şu an sadece Gmail ile test edildi.
+**Not:** Outlook app password çalışmıyor çünkü yerine OAuth2 getirildi. Şu an sadece Gmail ile test edildi.
 
 [Click here for the English README](#english)
 
@@ -215,14 +214,14 @@ Bulk Mailer Go, Go programlama dili ve Wails framework kullanılarak geliştiril
 - **📤 Toplu Gönderim**: Binlerce e-postayı tek seferde gönderme; duraklatma, devam etme, iptal etme; %90 gerçeğe yakın gönderim (tablolar garanti edilmez)
 - **🔍 Arama ve Filtreleme**: Kişileri ve şablonları filtreleme
 - **🔄 Veri Yönetimi**: Veri içe/dışa aktarma, şablon/hesap içe aktarma
-- **🗑️ Kendini Silme**: Uygulama kaldırma (macOS ve Windows'ta tam silme; Linux'ta .cache ve .local/share/BulkMailerGo kalır)
+- **🗑️ Kendini Silme**: Uygulama kaldırma
 
 ### 📋 Sistem Gereksinimleri
 
 - **Go**: 1.23.0 veya üzeri
 - **Node.js**: 24.5.0 veya üzeri
 - **npm**: 11.5.1 veya üzeri
-- **İşletim Sistemi**: Windows, macOS, Linux (Linux'ta bazı sorunlar mevcut, bkz. Bilinen Sorunlar)
+- **İşletim Sistemi**: Windows, macOS, Linux
 
 ### 🛠️ Kurulum
 
@@ -299,6 +298,7 @@ Uygulama sekme tabanlıdır. "Kişiler" sekmesi, en az bir hesap ekleyip "Hesapl
 - "Continue" ile "Şablonlar" sekmesine geçin (isteğe bağlı).
 
 #### 4. Şablon Yönetimi (Templates)
+- Sürümler kısmından varsayılan şablonları indirip içeri aktararak kullanabilirsiniz.
 - "Add Template" ile yeni şablon oluşturun.
 - Şablon adı, konu ve dil girin.
 - Editörde içerik oluşturun: Yer tutucular (`{ad}`, `{soyad}` vb.) kullanın; resim/GIF ekleyin; tema değiştirin (açık/koyu, e-posta rengi buna göre değişir).
@@ -333,7 +333,7 @@ Uygulama sekme tabanlıdır. "Kişiler" sekmesi, en az bir hesap ekleyip "Hesapl
 #### Veri Yönetimi
 - **Dışa Aktarma**: Tüm verileri yedekleyin.
 - **İçe Aktarma**: Yedekten geri yükleyin; şablon/hesap içe aktarın.
-- **Kendini Silme**: Ayarlar'dan kaldırın (macOS/Windows tam; Linux’ta .cache ve .local/share/BulkMailerGo kalır).
+- **Kendini Silme**: Ayarlar'dan kaldırın (macOS/Windows/Linux;).
 - Gizlilik: Ayrıntılar için PRIVACY.md
 - Atıf: Ayrıntılar için NOTICE.md
 
@@ -346,8 +346,6 @@ Uygulama sekme tabanlıdır. "Kişiler" sekmesi, en az bir hesap ekleyip "Hesapl
 ### 🐛 Bilinen Sorunlar ve Sorun Giderme
 
 #### Bilinen Sorunlar
-- Linux'ta dropdown'lar beyaz görünebiliyor (düzeltiliyor).
-- Linux'ta kaldırma tam değil: .cache ve .local/share/BulkMailerGo kalır (macOS/Windows çözüldü).
 - Gönderim %90 gerçeğe yakın; tablolar garanti edilmez.
 
 #### Yaygın Sorunlar
